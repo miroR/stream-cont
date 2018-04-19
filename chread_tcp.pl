@@ -294,11 +294,11 @@ sub Read_Input_File {
 		#
 		# --- Read Record from Log ---
 		#
-			&Read_Tcpdump_Record();		# will "last" on error
-			$packet_data = $tcpdump_data;
-			$packet_time = $tcpdump_seconds;
-			$packet_timefull = $tcpdump_seconds + $tcpdump_msecs/1000000;
-			$record_size = $tcpdump_length + ($integerSize * 2 + 8);
+		&Read_Tcpdump_Record();		# will "last" on error
+		$packet_data = $tcpdump_data;
+		$packet_time = $tcpdump_seconds;
+		$packet_timefull = $tcpdump_seconds + $tcpdump_msecs/1000000;
+		$record_size = $tcpdump_length + ($integerSize * 2 + 8);
 		
 		### Print status summary
 		unless ($Arg{quiet}) {
@@ -360,7 +360,7 @@ sub Read_Input_File {
 		
 		### Check for IP ver
 		($ip_verNihl,$ip_rest) = unpack('Ca*',$ether_data); #what does ihl stand for?
-		$ip_ver = $ip_verNihl & 240; # just why/what about/how is that?
+		$ip_ver = $ip_verNihl & 240;
 		$ip_ver = $ip_ver >> 4;
 		
 		if ($ip_ver == 4) {
@@ -524,9 +524,24 @@ sub Read_Input_File {
 		$ip_protocol = $IP{time}{$time}{protocol};
 		$drops = $IP{time}{$time}{drops};
 		undef $ip_data;
-		# Try 'n say %IP. Is this hash %{$IP{time}} (see 20 lines above)?
+		# Try 'n print %IP. Is the hash %{$IP{time}} (see 20 lines above)?
 		for my $key ( keys(%{$IP{time}})) {
-			print "$key => $IP{time}{$key}";
+			&logger("\$key: $key");
+			print "$key => $IP{time}{$key}{ver}\n";
+			&logger("\$key => \$IP{time}{\$key}{ver}");
+			&logger("$key => $IP{time}{$key}{ver}");
+			print "$key => $IP{time}{$key}{src}\n";
+			&logger("\$key => \$IP{time}{\$key}{src}");
+			&logger("$key => $IP{time}{$key}{src}");
+			print "$key => $IP{time}{$key}{dest}\n";
+			&logger("\$key => \$IP{time}{\$key}{dest}");
+			&logger("$key => $IP{time}{$key}{dest}");
+			print "$key => $IP{time}{$key}{protocol}\n";
+			&logger("\$key => \$IP{time}{\$key}{protocol}");
+			&logger("$key => $IP{time}{$key}{protocol}");
+			sub spacer{ print '-' x 50, "\n"; }
+			$spacer_m=&spacer;
+			&logger("--------------------------------------------------");
 		}
 		
 		#
@@ -2480,7 +2495,7 @@ sub Read_Tcpdump_Record {
 			open my $binfile_d, ">>", "$my_bin_d" or die "Could not open $my_bin_d: $!";
 			print $binfile_d $binmessage;
 		}
-		# If you uncomment these, you might get just a little bit close to
+		# If you uncomment these, you might get just a little bit closer to
 		# figuring out the code, with a lot of perldoc/comparisons/and other
 		# work.
 		#&binner("$header_rec");
@@ -2710,7 +2725,6 @@ sub Process_Command_Line_Arguments {
 	@{$Arg{infiles}} = @ARGV;
 }
 
-exit(0);
 
 
 __END__
