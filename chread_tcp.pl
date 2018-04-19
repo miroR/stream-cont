@@ -524,6 +524,10 @@ sub Read_Input_File {
 		$ip_protocol = $IP{time}{$time}{protocol};
 		$drops = $IP{time}{$time}{drops};
 		undef $ip_data;
+		# Try 'n say %IP. Is this hash %{$IP{time}} (see 20 lines above)?
+		for my $key ( keys(%{$IP{time}})) {
+			print "$key => $IP{time}{$key}";
+		}
 		
 		#
 		#  Reassemble IP frags
@@ -2706,6 +2710,7 @@ sub Process_Command_Line_Arguments {
 	@{$Arg{infiles}} = @ARGV;
 }
 
+exit(0);
 
 
 __END__
