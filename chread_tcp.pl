@@ -55,8 +55,8 @@
 #	Removed UDP, ICMP
 #	Removed Save_FTP_File, Save_SMTP_Emails
 #	Removed most (all) previous "print..." often after unpack(...". lines. A
-#	few are left so the method I deployed for studying the code may be used by
-#	others.
+#	few are left (but commented out) so the method I deployed for studying the
+#	code may be used by others.
 #	
 #	Re-pasted __END__ and %IP and %TCP data types cheatsheet
 #	Created a sub logger into which to print %IP and %IP
@@ -74,13 +74,14 @@ use Getopt::Long;
 use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
 use IO::Uncompress::Inflate qw(inflate $InflateError) ;
 use IO::Uncompress::RawInflate qw(rawinflate $RawInflateError) ;
-use Time::Piece;
+use Time::Piece;		# needed for logger/binner/binner_d unique filename
+						# creation
 
 my $t = localtime();
 my $my_log;
 my $my_bin;
 $my_log .= "$0-";
-$my_log =~ s|/usr/local/bin/|| ;
+$my_log =~ s|/usr/local/bin/|| ; # well if your Chaosreader is elsewhere, modify.
 $my_log =~ s/.pl// ;
 $my_log .= $t->ymd;
 $my_log =~ s/.pl// ;
@@ -95,7 +96,8 @@ sub logger {
 }
 &logger("This log ($my_log) created for printing %IP and %TCP");
 &logger("\tfor own understanding of the core functionality of this script.");
-&logger("\tThere can be also $my_bin<...> for binary snippets with binner.");
+&logger("\tThere can be also $my_bin<...>(,_d).bin");
+&logger("\tfor binary snippets/data with binner(,_d).");
 
 #
 $integerSize = length(pack('I',0));	# can make a difference for tcpdumps
@@ -111,12 +113,7 @@ $| = 1;								# flush output
 #
 #  Load some lookup tables for number -> name translations.
 #
-#&Load_Etc_Services();
-#&Set_IP_Protocols();
-#&Set_ICMP_Types();
 &Set_Result_Names();
-#&Set_MIME_Types(); #JL
-#&Set_DNS(); #JL
 
 ############################
 # --- MODE only Normal --- #
@@ -2466,19 +2463,22 @@ sub Read_Tcpdump_Record {
 		$my_bin_d .= "_d";
 		$my_bin_d .= ".bin";
 		$my_bin .= ".bin";
-		sub binner {	# logger above is straight from perlintro, and binner is
-						#       copy-paste-n-modify on it with a pun.
+		sub binner {	# logger (at top) is straight from perlintro, and binner is
+						#       copy-paste-n-modify on it, with a pun.
 			my $binmessage = shift;
 			open my $binfile, ">>", "$my_bin" or die "Could not open $my_bin: $!";
-			say $binfile $binmessage;
+			print $binfile $binmessage;
 		}
 		sub binner_d {	# see note on binner above, _d is for data, put in data
 						# that will make for streams/sessions once cat'ed
 						# together
 			my $binmessage = shift;
 			open my $binfile_d, ">>", "$my_bin_d" or die "Could not open $my_bin_d: $!";
-			say $binfile_d $binmessage;
+			print $binfile_d $binmessage;
 		}
+		# If you uncomment these, you might get just a little bit close to
+		# figuring out the code, with a lot of perldoc/comparisons/and other
+		# work.
 		#&binner("$header_rec");
 		#open my $binfile, "<", "$my_bin" or die "Could not open $my_bin: $!";
 		#my $o_tcpdump_seconds;
@@ -2501,6 +2501,7 @@ sub Read_Tcpdump_Record {
 		#&logger("\$my_o_tcpdump_length: $my_o_tcpdump_length");
 	}
 	$length = read(INFILE,$tcpdump_data,$tcpdump_length);
+	# See note above why this line.
 	#&binner_d("$tcpdump_data");
 	$tcpdump_drops = $tcpdump_length_orig - $tcpdump_length;
 }
@@ -2534,9 +2535,9 @@ sub Touch_Vars {
 }
 
 
-# Process_Command_Line_Arguments - this process the command line arguments
-#	and sets various globals which are kept in %Arg. It also prints
-#	usage and exists if need be.
+# Process_Command_Line_Arguments - this processes the command line arguments
+# and sets various globals which are kept in %Arg. It also prints usage and
+# exists if need be.
 #
 sub Process_Command_Line_Arguments {
 	my $result;
