@@ -82,7 +82,9 @@ my $usec;
 my $my_log;
 my $my_bin;
 $my_log .= "$0-";
-$my_log =~ s|/usr/local/bin/|| ; # if this script is elsewhere, modify.
+$my_log =~ s|/usr/local/bin/|| ;	# if this script is elsewhere, modify.
+									# I'll name it by the file worked,
+									# when I learn to do so... Biginner...
 $my_log =~ s/.pl// ;
 $my_log .= $s;
 $my_bin = $my_log;
@@ -91,6 +93,65 @@ sub logger {
 	my $logmessage = shift;
 	open my $logfile, ">>", "$my_log" or die "Could not open $my_log: $!";
 	say $logfile $logmessage;
+}
+sub binner {	# logger above was initially from perlintro, and binner was
+				# copy-paste-n-modify on it, with a pun ending in -er.
+				# By this version, they work to usec level filenaming.
+	$s = clock_gettime();
+	$s =~ /\d*\.(\d*)/ ;
+	$usec=$1;
+	$my_bin = $my_log;
+	$my_bin =~ /(\S*)\.log/ ;
+	$my_bin=$1;
+	$my_bin .= ".";
+	$my_bin .= $usec;
+	if ( $tcpdump_seconds ) {
+		$my_bin .= ".";
+		$my_bin .= $tcpdump_seconds ; 
+	} else {
+		print "no \$tcpdump_seconds";
+	} 
+	if ( $tcpdump_msecs ) {
+		$my_bin .= ".";
+		$my_bin .= $tcpdump_msecs ;
+	} else {
+		print "no \$tcpdump_msecs";
+	} 
+	$my_bin .= ".bin";
+	my $binmessage = shift;
+	open my $binfile, ">>", "$my_bin" or die "Could not open $my_bin: $!";
+	print $binfile $binmessage;
+	&logger("created $my_bin");
+}
+sub binner_d {	# see note on binner above, _d is for data, put in data
+				# that will make for streams/sessions once cat'ed
+				# together
+	$s = clock_gettime();
+	$s =~ /\d*\.(\d*)/ ;
+	$usec=$1;
+	$my_bin_d = $my_log;
+	$my_bin_d =~ /(\S*)\.log/ ;
+	$my_bin_d=$1;
+	$my_bin_d .= ".";
+	$my_bin_d .= $usec;
+	if ( $tcpdump_seconds ) {
+		$my_bin_d .= ".";
+		$my_bin_d .= $tcpdump_seconds ; 
+	} else {
+		print "no \$tcpdump_seconds";
+	} 
+	if ( $tcpdump_msecs ) {
+		$my_bin_d .= ".";
+		$my_bin_d .= $tcpdump_msecs ;
+	} else {
+		print "no \$tcpdump_msecs";
+	} 
+	$my_bin_d .= "_d";
+	$my_bin_d .= ".bin";
+	my $binmessage = shift;
+	open my $binfile_d, ">>", "$my_bin_d" or die "Could not open $my_bin_d: $!";
+	print $binfile_d $binmessage;
+	&logger("created $my_bin_d");
 }
 &logger("This log ($my_log) created for printing %IP and %TCP");
 &logger("\tfor own understanding of the core functionality of this script,");
@@ -2567,32 +2628,18 @@ sub Read_Tcpdump_Record {
 		# rewrite some, these 12 lines below need to be stuck before every
 		# other binner, binner_d below. Else, snippets/data get appended. Not
 		# so bad, but I want better.
-		$s = clock_gettime();
-		$s =~ /\d*\.(\d*)/ ;
-		$usec=$1;
-		$my_bin = $my_log;
-		$my_bin =~ /(\S*)\.log/ ;
-		$my_bin=$1;
-		$my_bin .= ".";
-		$my_bin .= $usec;
-		$my_bin_d = "$my_bin";
-		$my_bin_d .= "_d";
-		$my_bin_d .= ".bin";
-		$my_bin .= ".bin";
-		sub binner {	# logger (at top) is straight from perlintro, and binner is
-						# copy-paste-n-modify on it, with a pun ending in -er.
-			my $binmessage = shift;
-			open my $binfile, ">>", "$my_bin" or die "Could not open $my_bin: $!";
-			print $binfile $binmessage;
-			&logger("created $my_bin");
-		}
-		sub binner_d {	# see note on binner above, _d is for data, put in data
-						# that will make for streams/sessions once cat'ed
-						# together
-			my $binmessage = shift;
-			open my $binfile_d, ">>", "$my_bin_d" or die "Could not open $my_bin_d: $!";
-			print $binfile_d $binmessage;
-		}
+		#$s = clock_gettime();
+		#$s =~ /\d*\.(\d*)/ ;
+		#$usec=$1;
+		#$my_bin = $my_log;
+		#$my_bin =~ /(\S*)\.log/ ;
+		#$my_bin=$1;
+		#$my_bin .= ".";
+		#$my_bin .= $usec;
+		#$my_bin_d = "$my_bin";
+		#$my_bin_d .= "_d";
+		#$my_bin_d .= ".bin";
+		#$my_bin .= ".bin";
 		# If you uncomment these, you might get just a little bit closer to
 		# figuring out the code, if you apply a lot of perldoc
 		# reading/comparisons/other reading/learning where necessary.
