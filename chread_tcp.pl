@@ -46,7 +46,7 @@
 #	Somewere not long before the last line above I started inserting new, mostly
 #		"print..." often after unpack(...", lines, to understand the code. Will
 #		make this copy available, may help some other new explorer of Perl.
-#		(Practice by running it on (very) small dumps first.)
+#		(Practice by running it on (very) small traces first.)
 #	Removed Wireless
 #	Apparently the $llc_<something> were all wireless too. Removed.
 #	Set "$Arg{debug} = 1;" (default 0)
@@ -74,21 +74,19 @@ use Getopt::Long;
 use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
 use IO::Uncompress::Inflate qw(inflate $InflateError) ;
 use IO::Uncompress::RawInflate qw(rawinflate $RawInflateError) ;
-use Time::Piece;		# needed for logger/binner/binner_d unique filename
-						# creation
-
-my $t = localtime();
+# needed for logger/binner/binner_d unique filename creation
+use Time::HiRes qw( clock_gettime usleep TIMER_ABSTIME );
+my $s;
+$s = clock_gettime();
+my $usec;
 my $my_log;
 my $my_bin;
 $my_log .= "$0-";
-$my_log =~ s|/usr/local/bin/|| ; # well if your Chaosreader is elsewhere, modify.
+$my_log =~ s|/usr/local/bin/|| ; # if this script is elsewhere, modify.
 $my_log =~ s/.pl// ;
-$my_log .= $t->ymd;
-$my_log =~ s/.pl// ;
-$my_log .= "T";
-$my_log .= $t->hms(".");
-$my_log .= ".log";
+$my_log .= $s;
 $my_bin = $my_log;
+$my_log .= ".log";
 sub logger {
 	my $logmessage = shift;
 	open my $logfile, ">>", "$my_log" or die "Could not open $my_log: $!";
@@ -99,6 +97,7 @@ sub logger {
 &logger("\tfor text, with sub logger.");
 &logger("There can also be $my_bin<...>(,_d).bin");
 &logger("\tfor binary snippets/data with sub(s) binner(,_d).");
+&logger("==================================================");
 
 #
 $integerSize = length(pack('I',0));	# can make a difference for tcpdumps
@@ -2560,9 +2559,22 @@ sub Read_Tcpdump_Record {
 		# binner and binner_d add $tcpdump_(seconds,msecs), so I defined them
 		# here. They can be called any time after Read_Tcpdump_Record has been
 		# run, I guess.
+		#$my_bin .= "$tcpdump_seconds";
+		#$my_bin .= "$tcpdump_msecs";
+		# Uncertain if abandon naming by tcpdump_(seconds,msecs).
+		# But real uniqueness of finenames for bin snippets/data only if every time
+		# binner/binner_d is called, new files are made anew. Meaning, until I
+		# rewrite some, these 12 lines below need to be stuck before every
+		# other binner, binner_d below. Else, snippets/data get appended. Not
+		# so bad, but I want better.
+		$s = clock_gettime();
+		$s =~ /\d*\.(\d*)/ ;
+		$usec=$1;
 		$my_bin = $my_log;
-		$my_bin .= "$tcpdump_seconds";
-		$my_bin .= "$tcpdump_msecs";
+		$my_bin =~ /(\S*)\.log/ ;
+		$my_bin=$1;
+		$my_bin .= ".";
+		$my_bin .= $usec;
 		$my_bin_d = "$my_bin";
 		$my_bin_d .= "_d";
 		$my_bin_d .= ".bin";
@@ -2572,7 +2584,7 @@ sub Read_Tcpdump_Record {
 			my $binmessage = shift;
 			open my $binfile, ">>", "$my_bin" or die "Could not open $my_bin: $!";
 			print $binfile $binmessage;
-			&logger("created/used $my_bin");
+			&logger("created $my_bin");
 		}
 		sub binner_d {	# see note on binner above, _d is for data, put in data
 						# that will make for streams/sessions once cat'ed
@@ -2675,7 +2687,7 @@ sub Process_Command_Line_Arguments {
 	$Arg{httplog_name} = "httplog.text"; # JL: Old default as variable
 	$Arg{httplog_txt} = "httplog.txt";   # JL: New text format
 	$Arg{keydata} = 0;
-	$Arg{debug} = 1;
+	$Arg{debug} = 0;
 	
 	#
 	#  Check correct switches were used
