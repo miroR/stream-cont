@@ -95,9 +95,10 @@ sub logger {
 	say $logfile $logmessage;
 }
 &logger("This log ($my_log) created for printing %IP and %TCP");
-&logger("\tfor own understanding of the core functionality of this script.");
-&logger("\tThere can be also $my_bin<...>(,_d).bin");
-&logger("\tfor binary snippets/data with binner(,_d).");
+&logger("\tfor own understanding of the core functionality of this script,");
+&logger("\tfor text, with sub logger.");
+&logger("There can also be $my_bin<...>(,_d).bin");
+&logger("\tfor binary snippets/data with sub(s) binner(,_d).");
 
 #
 $integerSize = length(pack('I',0));	# can make a difference for tcpdumps
@@ -285,7 +286,7 @@ sub Read_Input_File {
 	local $packet = 0;			# counter
 	# if it is not snoop (is snoop around at all nowadays?), it's tcpdump, and
 	# then, as per the orig:
-	 $bytes = 24;
+	$bytes = 24;
 	
 	#
 	# --- Pass #1, Store IP data in memory (%IP) --
@@ -312,6 +313,12 @@ sub Read_Input_File {
 		#
 		# --- Parse TCP/IP layers (a little ;) ---
 		#
+		#-------------------------------------------------------------------
+		#  Wireless, 802.11b
+		#
+		#$decoded = 0;		# this flag is true if wireless was found
+		#	[...]
+		#	$decoded = 1;	# remember we did this
 		
 		#-------------------------------------------------------------------
 		#
@@ -320,7 +327,13 @@ sub Read_Input_File {
 		
 		### Unpack ether data
 		($ether_dest,$ether_src,$ether_type,$ether_data) =
-		 unpack('H12H12H4a*',$packet_data) unless $decoded;
+			unpack('H12H12H4a*',$packet_data) unless $decoded;
+		#$my_ether_data = unpack('H*',$ether_data);
+		#&logger("\$ether_dest,\$ether_src,\$ether_type,\$my_ether_data;");
+		#&logger("$ether_dest,$ether_src,$ether_type,$my_ether_data;");
+		&logger("\$ether_dest,\$ether_src,\$ether_type");
+		&logger("$ether_dest,$ether_src,$ether_type");
+		&logger("--------------------------------------------------");
 		
 		#
 		#  Process extended Ethernet types (PPPoE; wireless and VLAN removed)
@@ -330,10 +343,10 @@ sub Read_Input_File {
 		if ($ether_type eq "8864") {
 			($pppoe_verNtype,$pppoe_code,$pppoe_id,$pppoe_length,
 			 $ppp_protocol,$ether_data) = unpack("CCnnna*",$ether_data);
-		
+			
 			### Skip anything but data (we just want data - code 0)
 			next if $pppoe_code != 0;
-		
+			
 			# (May like to add code here later to process $ppp_protocol,
 			# eg, to process LCP).
 		}
@@ -348,6 +361,9 @@ sub Read_Input_File {
 			($lptype,$lladdr_type,$lladdr_len,
 			$ether_src,$ll_dummy,$ether_type,$ether_data) =
 			unpack('nnnH12nH4a*',$packet_data) unless $decoded;
+			&logger("\$lptype,\$lladdr_type,\$lladdr_len,\$ether_src,\$ll_dummy,\$ether_type");
+			&logger("$lptype,$lladdr_type,$lladdr_len,$ether_src,$ll_dummy,$ether_type");
+			&logger("--------------------------------------------------");
 			if ($ether_type ne "0800") {
 			next;
 			}
@@ -359,9 +375,16 @@ sub Read_Input_File {
 		#
 		
 		### Check for IP ver
-		($ip_verNihl,$ip_rest) = unpack('Ca*',$ether_data); #what does ihl stand for?
+		($ip_verNihl,$ip_rest) = unpack('Ca*',$ether_data);	# ihl ip header length
+		&logger("\$ip_verNihl");
+		&logger("$ip_verNihl");
 		$ip_ver = $ip_verNihl & 240;
+		&logger("$ip_verNihl & 240");
+		&logger("\$ip_ver: $ip_ver");
+		&logger("\$ip_ver = \$ip_ver shift 4:");
+		&logger("$ip_ver = $ip_ver >> 4");
 		$ip_ver = $ip_ver >> 4;
+		&logger("\$ip_ver: $ip_ver");
 		
 		if ($ip_ver == 4) {
 		
@@ -372,32 +395,68 @@ sub Read_Input_File {
 			
 			### Unpack IP data
 			($ip_verNihl,$ip_tos,$ip_length,$ip_ident,$ip_flagNfrag,
-			 $ip_ttl,$ip_protocol,$ip_checksum,@ip_src[0..3],
-			 @ip_dest[0..3],$ip_data) = unpack('CCnnnCCa2CCCCCCCCa*',
-			 $ether_data);
+				$ip_ttl,$ip_protocol,$ip_checksum,@ip_src[0..3],
+				@ip_dest[0..3],$ip_data) = unpack('CCnnnCCa2CCCCCCCCa*',
+				$ether_data);
+			&logger("\$ip_verNihl,\$ip_tos,\$ip_length,\$ip_ident,\$ip_flagNfrag,");
+			&logger("\$ip_ttl,\$ip_protocol,\$my_ip_checksum,\ at ip_src[0..3],at ip_dest[0..3] ");
+			&logger("= the_unpack(CCnnnCCa2CCCCCCCCa*,\$ether_data");
+			#my $my_ether_data = unpack('H*', $ether_data);
+			#&logger("$ip_verNihl,$ip_tos,$ip_length,$ip_ident,$ip_flagNfrag,$ip_ttl,");
+			#&logger("$ip_protocol,$ip_checksum,@ip_src[0..3],@ip_dest[0..3]");
+			#&logger("= unpack('CCnnnCCa2CCCCCCCC',$my_ether_data");
+			my $my_ip_checksum = unpack('H*', $ip_checksum);
+			&logger("$ip_verNihl,$ip_tos,$ip_length,$ip_ident,$ip_flagNfrag,");
+			&logger("$ip_ttl,$ip_protocol,$my_ip_checksum,@ip_src[0..3],@ip_dest[0..3]");
 			
 			### Get frag and flag data
+			&logger("\$ip_flagNfrag: $ip_flagNfrag");
+			&logger("\$ip_frag = \$ip_flagNfrag and 8191");
 			$ip_frag = $ip_flagNfrag & 8191;
+			&logger("$ip_flagNfrag & 8191");
+			&logger("\$ip_frag: $ip_frag");
+			&logger("\$ip_flag = \$ip_flagNfrag and 57344");
+			&logger("$ip_flagNfrag & 57344");
 			$ip_flag = $ip_flagNfrag & 57344;
+			&logger("\$ip_flag: $ip_flag");
+			&logger("\$ip_flag = \$ip_flag shift 13");
 			$ip_flag = $ip_flag >> 13;
-			$ip_MF = $ip_flag & 1;
-			
+			&logger("\$ip_flag: $ip_flag");
+			&logger("\$ip_MF = \$ip_flag and 1");
+			&logger("$ip_flag & 1");
+			$ip_MF = $ip_flag & 1;					# MF: more fragments
+			&logger("\$ip_MF: $ip_MF");
 			### Strip off IP options if present
+			&logger("\$ip_ihl = \$ip_verNihl: and 15");
+			&logger("$ip_verNihl & 15");
 			$ip_ihl = $ip_verNihl & 15;
+			&logger("\$ip_ihl = $ip_ihl");
+			&logger("\$ip_ihl = \$ip_ihl left shift 2");
+			&logger("$ip_ihl << 2");
 			$ip_ihl = $ip_ihl << 2;
+			&logger("\$ip_ihl = $ip_ihl");
+			&logger("\$ip_options_num = \$ip_ihl - 20");
+			&logger("$ip_ihl - 20");
 			$ip_options_num = $ip_ihl - 20;
+			&logger("\$ip_options_num = $ip_options_num");
 			if ($ip_options_num > 0) {
 				($ip_options,$ip_data) =
-				 unpack("a${ip_options_num}a*",$ip_data);
+				unpack("a${ip_options_num}a*",$ip_data);
 			}
 			
 			### Strip off Ethernet trailers
 			$ip_dlength = $ip_length - $ip_options_num - 20;
 			($ip_data,$trailers) = unpack("a${ip_dlength}a*",$ip_data);
+			&logger("$ip_dlength = $ip_length - $ip_options_num - 20");
+			# This actually unpacks it into $logfile, but illegible
+			#&logger("($ip_data,$trailers) = unpack(\"a${ip_dlength}a*\",$ip_data);");
+			&logger("(\$ip_data,\$trailers) = the_unpack (a\${ip_dlength}a*,\$ip_data);");
+			&logger("\$ip_data,\$trailers: REMOVED,$trailers");
 			
 			### Build text strings of IP addresses
 			$ip_src = sprintf("%u.%u.%u.%u",@ip_src);
 			$ip_dest = sprintf("%u.%u.%u.%u",@ip_dest);
+			&logger("\$ip_src,\$ip_dest: $ip_src,$ip_dest");
 			
 		} elsif ($ip_ver == 6) {
 			
@@ -448,6 +507,7 @@ sub Read_Input_File {
 		
 		### Generate unique IP id (not just the ident)
 		$ip_id = &Generate_IP_ID($ip_src,$ip_dest,$ip_ident);
+		&logger("\$ip_id: $ip_id");
 		#
 		#  Store IP data in %IP so we can do frag reassembly next
 		#
@@ -524,25 +584,46 @@ sub Read_Input_File {
 		$ip_protocol = $IP{time}{$time}{protocol};
 		$drops = $IP{time}{$time}{drops};
 		undef $ip_data;
-		# Try 'n print %IP. Is the hash %{$IP{time}} (see 20 lines above)?
-		for my $key ( keys(%{$IP{time}})) {
-			&logger("\$key: $key");
-			print "$key => $IP{time}{$key}{ver}\n";
-			&logger("\$key => \$IP{time}{\$key}{ver}");
-			&logger("$key => $IP{time}{$key}{ver}");
-			print "$key => $IP{time}{$key}{src}\n";
-			&logger("\$key => \$IP{time}{\$key}{src}");
-			&logger("$key => $IP{time}{$key}{src}");
-			print "$key => $IP{time}{$key}{dest}\n";
-			&logger("\$key => \$IP{time}{\$key}{dest}");
-			&logger("$key => $IP{time}{$key}{dest}");
-			print "$key => $IP{time}{$key}{protocol}\n";
-			&logger("\$key => \$IP{time}{\$key}{protocol}");
-			&logger("$key => $IP{time}{$key}{protocol}");
-			sub spacer{ print '-' x 50, "\n"; }
-			$spacer_m=&spacer;
-			&logger("--------------------------------------------------");
-		}
+		# Try 'n print %IP. The hash is %{$IP{time}} (see 20 lines above)?
+		# But this goes on based on "Store IP data in %IP so..." some 60 lines above.
+		# Uncomment for testing/learning/figuring out. Not sorted:
+		#for my $key ( keys(%{$IP{time}})) {
+		#	&logger("\$key: $key");
+		#	print "$key => $IP{time}{$key}{ver}\n";
+		#	&logger("\$key => \$IP{time}{\$key}{ver}");
+		#	&logger("$key => $IP{time}{$key}{ver}");
+		#	print "$key => $IP{time}{$key}{src}\n";
+		#	&logger("\$key => \$IP{time}{\$key}{src}");
+		#	&logger("$key => $IP{time}{$key}{src}");
+		#	print "$key => $IP{time}{$key}{dest}\n";
+		#	&logger("\$key => \$IP{time}{\$key}{dest}");
+		#	&logger("$key => $IP{time}{$key}{dest}");
+		#	print "$key => $IP{time}{$key}{protocol}\n";
+		#	&logger("\$key => \$IP{time}{\$key}{protocol}");
+		#	&logger("$key => $IP{time}{$key}{protocol}");
+		#	sub spacer{ print '-' x 50, "\n"; }
+		#	$spacer_m=&spacer;
+		#	&logger("--------------------------------------------------");
+		#}
+		# Sorted:
+		#for my $key ( sort { $a <=> $b } ( keys(%{$IP{time}})) ) {
+		#	&logger("\$key: $key");
+		#	print "$key => $IP{time}{$key}{ver}\n";
+		#	&logger("\$key => \$IP{time}{\$key}{ver}");
+		#	&logger("$key => $IP{time}{$key}{ver}");
+		#	print "$key => $IP{time}{$key}{src}\n";
+		#	&logger("\$key => \$IP{time}{\$key}{src}");
+		#	&logger("$key => $IP{time}{$key}{src}");
+		#	print "$key => $IP{time}{$key}{dest}\n";
+		#	&logger("\$key => \$IP{time}{\$key}{dest}");
+		#	&logger("$key => $IP{time}{$key}{dest}");
+		#	print "$key => $IP{time}{$key}{protocol}\n";
+		#	&logger("\$key => \$IP{time}{\$key}{protocol}");
+		#	&logger("$key => $IP{time}{$key}{protocol}");
+		#	sub spacer{ print '-' x 50, "\n"; }
+		#	$spacer_m=&spacer;
+		#	&logger("--------------------------------------------------");
+		#}
 		
 		#
 		#  Reassemble IP frags
@@ -2449,10 +2530,10 @@ sub Read_Tcpdump_Record {
 	
 	### Fetch record header
 	$length = read(INFILE,$header_rec,($integerSize * 2 + 8));
-	#&logger("\$length = read(INFILE,\$header_rec,(\$integerSize * 2 + 8));");
+	&logger("\$length = read(INFILE,\$header_rec,(\$integerSize * 2 + 8));");
 	my $my_header_rec = unpack('H*', $header_rec);
 	my $my_integerSizeBy2p8=($integerSize * 2 + 8);
-	#&logger("$length = read(INFILE,$my_header_rec,$my_integerSizeBy2p8);");
+	&logger("$length = read(INFILE,$my_header_rec,$my_integerSizeBy2p8);");
 	
 	### Quit main loop if at end of file
 	last if $length < 16;
@@ -2473,8 +2554,12 @@ sub Read_Tcpdump_Record {
 		($tcpdump_seconds,$tcpdump_msecs,$tcpdump_length,
 		 $tcpdump_length_orig)
 		 = unpack('VVVV',$header_rec);
-		#&logger("\$tcpdump_seconds,\$tcpdump_msecs,\$tcpdump_length, \$tcpdump_length_orig = unpack('VVVV',\$header_rec);");
-		#&logger("$tcpdump_seconds,$tcpdump_msecs,$tcpdump_length, $tcpdump_length_orig,$my_header_rec;");
+		&logger("\$tcpdump_seconds,\$tcpdump_msecs,\$tcpdump_length,\$tcpdump_length_orig = unpack('VVVV',\$header_rec);");
+		&logger("$tcpdump_seconds,$tcpdump_msecs,$tcpdump_length, $tcpdump_length_orig,$my_header_rec;");
+		# While logger unique filename creation is based on using Time::Piece,
+		# binner and binner_d add $tcpdump_(seconds,msecs), so I defined them
+		# here. They can be called any time after Read_Tcpdump_Record has been
+		# run, I guess.
 		$my_bin = $my_log;
 		$my_bin .= "$tcpdump_seconds";
 		$my_bin .= "$tcpdump_msecs";
@@ -2483,10 +2568,11 @@ sub Read_Tcpdump_Record {
 		$my_bin_d .= ".bin";
 		$my_bin .= ".bin";
 		sub binner {	# logger (at top) is straight from perlintro, and binner is
-						#       copy-paste-n-modify on it, with a pun.
+						# copy-paste-n-modify on it, with a pun ending in -er.
 			my $binmessage = shift;
 			open my $binfile, ">>", "$my_bin" or die "Could not open $my_bin: $!";
 			print $binfile $binmessage;
+			&logger("created/used $my_bin");
 		}
 		sub binner_d {	# see note on binner above, _d is for data, put in data
 						# that will make for streams/sessions once cat'ed
@@ -2496,33 +2582,35 @@ sub Read_Tcpdump_Record {
 			print $binfile_d $binmessage;
 		}
 		# If you uncomment these, you might get just a little bit closer to
-		# figuring out the code, with a lot of perldoc/comparisons/and other
-		# work.
-		#&binner("$header_rec");
-		#open my $binfile, "<", "$my_bin" or die "Could not open $my_bin: $!";
-		#my $o_tcpdump_seconds;
-		#$length = read($binfile,$o_tcpdump_seconds,4);
-		#&binner("$o_tcpdump_seconds");
-		#my $my_o_tcpdump_seconds;
-		#$my_o_tcpdump_seconds = unpack('V',$o_tcpdump_seconds);
-		#&logger("\$my_o_tcpdump_seconds: $my_o_tcpdump_seconds");
-		#my $o_tcpdump_msecs;
-		#$length = read($binfile,$o_tcpdump_msecs,4);
-		#&binner("$o_tcpdump_msecs");
-		#my $my_o_tcpdump_msecs;
-		#$my_o_tcpdump_msecs = unpack('V',$o_tcpdump_msecs);
-		#&logger("\$my_o_tcpdump_msecs: $my_o_tcpdump_msecs");
-		#my $o_tcpdump_length;
-		#$length = read($binfile,$o_tcpdump_length,4);
-		#&binner("$o_tcpdump_length");
-		#my $my_o_tcpdump_length;
-		#$my_o_tcpdump_length = unpack('V',$o_tcpdump_length);
-		#&logger("\$my_o_tcpdump_length: $my_o_tcpdump_length");
+		# figuring out the code, if you apply a lot of perldoc
+		# reading/comparisons/other reading/learning where necessary.
+		&binner("$header_rec");
+		open my $binfile, "<", "$my_bin" or die "Could not open $my_bin: $!";
+		my $o_tcpdump_seconds;
+		$length = read($binfile,$o_tcpdump_seconds,4);
+		&binner("$o_tcpdump_seconds");
+		my $my_o_tcpdump_seconds;
+		$my_o_tcpdump_seconds = unpack('V',$o_tcpdump_seconds);
+		&logger("\$my_o_tcpdump_seconds: $my_o_tcpdump_seconds");
+		my $o_tcpdump_msecs;
+		$length = read($binfile,$o_tcpdump_msecs,4);
+		&binner("$o_tcpdump_msecs");
+		my $my_o_tcpdump_msecs;
+		$my_o_tcpdump_msecs = unpack('V',$o_tcpdump_msecs);
+		&logger("\$my_o_tcpdump_msecs: $my_o_tcpdump_msecs");
+		my $o_tcpdump_length;
+		$length = read($binfile,$o_tcpdump_length,4);
+		&binner("$o_tcpdump_length");
+		my $my_o_tcpdump_length;
+		$my_o_tcpdump_length = unpack('V',$o_tcpdump_length);
+		&logger("\$my_o_tcpdump_length: $my_o_tcpdump_length");
 	}
 	$length = read(INFILE,$tcpdump_data,$tcpdump_length);
 	# See note above why this line.
-	#&binner_d("$tcpdump_data");
+	&binner_d("$tcpdump_data");
 	$tcpdump_drops = $tcpdump_length_orig - $tcpdump_length;
+	# Uncomment to study just the initial loop:
+	#exit(0);
 }
 
 # Set_Result_Names - Set a lookup hash for squid result codes.
