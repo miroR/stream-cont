@@ -123,15 +123,16 @@ sub binner {	# logger above was initially from perlintro, and binner was
 		$my_bin .= ".";
 		$my_bin .= $tcpdump_seconds ; 
 	} else {
-		$my_bin .= ".";
-		$my_bin .= $packet ; 
+		if ( $packet ) {
+			$my_bin .= ".";
+			$my_bin .= $packet ; 
+		}
 	} 
 	if ( $tcpdump_msecs ) {
 		$my_bin .= ".";
 		$my_bin .= $tcpdump_msecs ;
 	} else {
-		$my_bin .= ".";
-		$my_bin .= $packet ; 
+		#print "no \$tcpdump_seconds yet/or undefined (no harm)\n";
 	} 
 	$my_bin .= ".bin";
 	my $binmessage = shift;
@@ -154,15 +155,16 @@ sub binner_d {	# see note on binner above, _d is for data, put in data
 		$my_bin_d .= ".";
 		$my_bin_d .= $tcpdump_seconds ; 
 	} else {
-		$my_bin .= ".";
-		$my_bin .= $packet ; 
+		if ( $packet ) {
+			$my_bin .= ".";
+			$my_bin .= $packet ; 
+		}
 	} 
 	if ( $tcpdump_msecs ) {
 		$my_bin_d .= ".";
 		$my_bin_d .= $tcpdump_msecs ;
 	} else {
-		$my_bin .= ".";
-		$my_bin .= $packet ; 
+		#print "no \$tcpdump_seconds yet/or undefined (no harm)\n";
 	} 
 	$my_bin_d .= "_d";
 	$my_bin_d .= ".bin";
@@ -239,7 +241,7 @@ if ($Arg{normal}) {
 	
 	### Determine Session and Stream time order
 	%Index = (); %Image = (); %ExtImage = (); %GETPOST = ();
-	&Sort_Index();
+	&Sort_Index_By_Time();
 	
 	#
 	#  Process %TCP and create session* output files, write %Index
@@ -274,8 +276,6 @@ if ($Arg{normal}) {
 #	new heuristics) to add code for. If ever I find time.
 #
 	
-undef $tcpdump_seconds;
-undef $tcpdump_msecs;
 sub Open_Input_File {
 	
 	my $infile = shift;
@@ -298,7 +298,6 @@ sub Open_Input_File {
 	### Print status
 	print "Reading file contents,\n" unless $Arg{quiet};
 	$SIZE = -s $infile;
-	#&logger("\$SIZE: $SIZE");
 	
 	#
 	#  Try to determine if this is a tcpdump file
@@ -447,6 +446,7 @@ sub Read_Input_File {
 			$ether_src,$ll_dummy,$ether_type,$ether_data) =
 			unpack('nnnH12nH4a*',$packet_data) unless $decoded;
 			&logger("\$lptype,\$lladdr_type,\$lladdr_len,\$ether_src,\$ll_dummy,\$ether_type");
+			&logger("the_unpack('nnnH12nH4a*',\$packet_data");
 			&logger("$lptype,$lladdr_type,$lladdr_len,$ether_src,$ll_dummy,$ether_type");
 			&logger("\$ether_data:");
 			&binner_d("$ether_data");
@@ -463,8 +463,7 @@ sub Read_Input_File {
 		
 		### Check for IP ver
 		($ip_verNihl,$ip_rest) = unpack('Ca*',$ether_data);	# ihl: ip header length
-		&logger("\$ip_verNihl");
-		&logger("$ip_verNihl");
+		&logger("\$ip_verNihl: $ip_verNihl");
 		$ip_ver = $ip_verNihl & 240;
 		&logger("$ip_verNihl & 240");
 		&logger("\$ip_ver: $ip_ver");
@@ -485,16 +484,12 @@ sub Read_Input_File {
 				$ip_ttl,$ip_protocol,$ip_checksum,@ip_src[0..3],
 				@ip_dest[0..3],$ip_data) = unpack('CCnnnCCa2CCCCCCCCa*',
 				$ether_data);
-			&logger("\$ip_verNihl,\$ip_tos,\$ip_length,\$ip_ident,\$ip_flagNfrag,");
-			&logger("\$ip_ttl,\$ip_protocol,\$my_ip_checksum,\ at ip_src[0..3],at ip_dest[0..3] ");
+			&logger("\$ip_verNihl,\$ip_tos,\$ip_length,\$ip_ident,\$ip_flagNfrag,\$ip_ttl,");
+			&logger("\$ip_protocol,\$my_ip_checksum,\ at ip_src[0..3],at ip_dest[0..3],\$ip_data");
 			&logger("= the_unpack(CCnnnCCa2CCCCCCCCa*,\$ether_data");
-			#my $my_ether_data = unpack('H*', $ether_data);
-			#&logger("$ip_verNihl,$ip_tos,$ip_length,$ip_ident,$ip_flagNfrag,$ip_ttl,");
-			#&logger("$ip_protocol,$ip_checksum,@ip_src[0..3],@ip_dest[0..3]");
-			#&logger("= unpack('CCnnnCCa2CCCCCCCC',$my_ether_data");
 			my $my_ip_checksum = unpack('H*', $ip_checksum);
-			&logger("$ip_verNihl,$ip_tos,$ip_length,$ip_ident,$ip_flagNfrag,");
-			&logger("$ip_ttl,$ip_protocol,$my_ip_checksum,@ip_src[0..3],@ip_dest[0..3]");
+			&logger("$ip_verNihl,$ip_tos,$ip_length,$ip_ident,$ip_flagNfrag,$ip_ttl,");
+			&logger("$ip_protocol,$my_ip_checksum,@ip_src[0..3],@ip_dest[0..3],\$ip_data");
 			
 			### Get frag and flag data
 			&logger("\$ip_flagNfrag: $ip_flagNfrag");
@@ -534,6 +529,7 @@ sub Read_Input_File {
 			### Strip off Ethernet trailers
 			$ip_dlength = $ip_length - $ip_options_num - 20;
 			($ip_data,$trailers) = unpack("a${ip_dlength}a*",$ip_data);
+			&logger("\$ip_dlength = \$ip_length - \$ip_options_num - 20");
 			&logger("$ip_dlength = $ip_length - $ip_options_num - 20");
 			&logger("(\$ip_data,\$trailers) = the_unpack (a\${ip_dlength}a*,\$ip_data);");
 			&logger("\$ip_data:");
@@ -612,12 +608,19 @@ sub Read_Input_File {
 			#
 			unless (($ip_MF == 0) && ($ip_frag == 0)) {
 				$IP{id}{$ip_id}{StartTime} = $packet_timefull;
+				#&logger("\$IP{id}{\$ip_id}{StartTime} = \$packet_timefull: \
+				#	$IP{id}{$ip_id}{StartTime} = $packet_timefull");
 			}
 			if (($ip_MF == 1) || ($ip_frag > 0)) {
 				$IP{time}{$packet_timefull}{fragged} = 1;
 			}
+			&logger("\$IP{id}{\$ip_id}{StartTime} = \$packet_timefull: \
+				$IP{id}{$ip_id}{StartTime} = $packet_timefull");
+			&logger("\$IP{id}{$ip_id}{StartTime}: $IP{id}{$ip_id}{StartTime}");
 		} else {
 			$start_time = $IP{id}{$ip_id}{StartTime};
+			#&logger("\$start_time = \$IP{id}{\$ip_id}{StartTime}: \
+			#	$start_time = $IP{id}{$ip_id}{StartTime}");
 			$IP{time}{$start_time}{frag}{$ip_frag} = $ip_data;
 			if ($tcpdump_drops) {
 				$IP{time}{$packet_timefull}{drops} = 1;
@@ -651,6 +654,12 @@ sub Read_Input_File {
 	&Print_Header1() if $Arg{debug};
 	$packets = $packet;
 	$packet = 0;
+	# sub Read_Tcpdump_Record already run, these are at the last values
+	# of the loop, binner(,_d) filename creation had better take the
+	# number of the packet instead:
+	undef $tcpdump_seconds;
+	undef $tcpdump_msecs;
+	
 	@Times = sort { $a <=> $b } ( keys(%{$IP{time}}) );
 	foreach $time (@Times) {
 		
@@ -744,19 +753,13 @@ sub Read_Input_File {
 			}
 		} else {
 			$ip_data = $IP{time}{$time}{frag}{0};
-			# sub Read_Tcpdump_Record already run, these are at the last values
-			# of the loop, binner(,_d) filename creation had better take the
-			# number of the packet instead:
-			undef $tcpdump_seconds;
-			undef $tcpdump_msecs;
-			#print "$packet";
 			#print "We're at else outside at IP_Frags = sort ... \n\n\n";
 			&logger("\$ip_data = \$IP{time}{\$time}{frag}{0}");
+			&logger("\$ip_data:");
 			&binner("$ip_data");
 		}
 		$length = length($ip_data);
-		&logger("\$length = length(\$ip_data)");
-		&logger("$length");
+		&logger("\$length = length(\$ip_data): $length");
 		
 		#
 		# --- TCP ---
@@ -799,7 +802,7 @@ sub Process_TCP_Packet {
 	my $ip_dest = shift;
 	my $time = shift;
 	my $drops = shift;
-	my $copy;
+	#my $copy;
 	
 	#-------------------------------------------------------------------
 	#
@@ -823,21 +826,45 @@ sub Process_TCP_Packet {
 	
 	### Strip off TCP options, if present
 	$tcp_offset = $tcp_offset >> 4;		# chuck out reserved bits
+	&logger("\$tcp_offset = \$tcp_offset shift 4");
+	&logger("\$tcp_offset: $tcp_offset");
 	$tcp_offset = $tcp_offset << 2;		# now times by 4
+	&logger("\$tcp_offset = \$tcp_offset shift left 2");
+	&logger("\$tcp_offset: $tcp_offset");
 	$tcp_options_num = $tcp_offset - 20;
+	&logger("\$tcp_options_num = \$tcp_offset - 20");
+	&logger("\$tcp_options_num = $tcp_options_num");
 	if ($tcp_options_num > 0) {
 		($tcp_options,$tcp_data) =
 		 unpack("a${tcp_options_num}a*",$tcp_data);
 	}
 	
 	### Fetch length and FIN,RST flags
-	$tcp_length_data = length($tcp_data);
+	# It's not used at all, not even in the orig.
+	#$tcp_length_data = length($tcp_data);
 	$tcp_fin = $tcp_flags & 1;
+	if ($tcp_fin != 0 ) {
+		&logger("\$tcp_fin = $tcp_flags & 1");
+		&logger("\$tcp_fin = $tcp_fin");
+		}
 	$tcp_syn = $tcp_flags & 2;
+	if ($tcp_syn != 0 ) {
+		&logger("\$tcp_syn = $tcp_flags & 2");
+		&logger("\$tcp_syn = $tcp_syn");
+	}
 	$tcp_rst = $tcp_flags & 4;
+	if ($tcp_rst != 0 ) {
+		&logger("\$tcp_rst = $tcp_flags & 4");
+		&logger("\$tcp_rst = $tcp_rst");
+	}
 	$tcp_ack = $tcp_flags & 16;
+	if ($tcp_ack != 0 ) {
+		&logger("\$tcp_ack = $tcp_flags & 16");
+		&logger("\$tcp_ack = $tcp_ack");
+	}
 	
-	$copy = $tcp_data;
+	# Not used for TCP.
+	#$copy = $tcp_data;
 	
 	#
 	#  Generate $session_id as a unique id for this stream
@@ -852,7 +879,9 @@ sub Process_TCP_Packet {
 		$TCP{id}{$session_id}{source_port} = $tcp_src_port;
 		# better repeat this,
 		($session_id,$from_server) = &Generate_SessionID($ip_src,
-		 $tcp_src_port,$ip_dest,$tcp_dest_port,"TCP");
+			$tcp_src_port,$ip_dest,$tcp_dest_port,"TCP");
+		# no harm, but number packets more lines
+		#&logger("\$session_id: $session_id, \$from_server: $from_server");
 	}
 	
 	#
@@ -863,10 +892,12 @@ sub Process_TCP_Packet {
 	
 	### Store size
 	$TCP{id}{$session_id}{size} += length($tcp_data);
+	&logger("\$TCP{id}{$session_id}{size}: $TCP{id}{$session_id}{size}");
 	
 	### Store the packet timestamp for the first seen packet
 	if (! defined $TCP{id}{$session_id}{StartTime}) {
 		$TCP{id}{$session_id}{StartTime} = $time;
+		&logger("\$TCP{id}{\$session_id}{StartTime}: $TCP{id}{$session_id}{StartTime}");
 		
 		### Store other info once
 		if ($from_server) {
@@ -879,11 +910,23 @@ sub Process_TCP_Packet {
 			$TCP{id}{$session_id}{dest} = $ip_dest;
 			$TCP{id}{$session_id}{src_port} = $tcp_src_port;
 			$TCP{id}{$session_id}{dest_port} = $tcp_dest_port;
+			&logger("\$TCP{id}{\$session_id}{src}: $TCP{id}{$session_id}{src}");
+			&logger("\$TCP{id}{$session_id}{src}: $TCP{id}{$session_id}{src}");
+			&logger("\$TCP{id}{\$session_id}{dest}: $TCP{id}{$session_id}{dest}");
+			&logger("\$TCP{id}{$session_id}{dest}: $TCP{id}{$session_id}{dest}");
+			&logger("\$TCP{id}{\$session_id}{src_port}: $TCP{id}{$session_id}{src_port}");
+			&logger("\$TCP{id}{$session_id}{src_port}: $TCP{id}{$session_id}{src_port}");
+			&logger("\$TCP{id}{\$session_id}{dest_port}: $TCP{id}{$session_id}{dest_port}");
+			&logger("\$TCP{id}{$session_id}{dest_port}: $TCP{id}{$session_id}{dest_port}");
+			&logger("\$TCP{id}{\$session_id}{size}: $TCP{id}{$session_id}{size}");
+			&logger("\$TCP{id}{$session_id}{size}: $TCP{id}{$session_id}{size}");
 		}
 	}
 	
 	### Store the packet timestamp in case this is the last packet
 	$TCP{id}{$session_id}{EndTime} = $time;
+	#&logger("\$TCP{id}{\$session_id}{EndTime} = \$time: \
+	#	$TCP{id}{$session_id}{EndTime} = $time");
 	
 	### Print status line
 	printf "%6s  %-45s  %s\n",$packet,$session_id,$length
@@ -1428,23 +1471,6 @@ sub Process_HTTP {
 }
 
 
-# Sort_Index - this creates a sort order for the master index.html, based
-#	on the sort argument (defaults to sort by time).
-#
-sub Sort_Index {
-
-	if ($Arg{sort} eq "size") {
-		&Sort_Index_By_Size();
-	} elsif ($Arg{sort} eq "type") {
-		&Sort_Index_By_Type();
-	} elsif ($Arg{sort} eq "ip") {
-		&Sort_Index_By_IP();
-	} else {
-		&Sort_Index_By_Time();
-	}
-}
-
-
 # Sort_Index_By_Time - this calculates an appropriate order for the index
 #	files based on session start time.
 #
@@ -1461,111 +1487,6 @@ sub Sort_Index_By_Time {
 	$number = 0;
 	foreach $session (sort {$Index{Time_Order}{$a} <=>
 	 $Index{Time_Order}{$b}} keys %{$Index{Time_Order}}) {
-		$number++;
-		$Index{Sort_Lookup}{$session} = $number;
-	}
-}
-
-
-# Sort_Index_By_Size - this calculates an appropriate order for the index
-#	files based on session size.
-#
-sub Sort_Index_By_Size {
-	my ($session_id,$time,$number);
-
-	#
-	#  Determine Session and Stream size order
-	#
-	foreach $session_id (keys %{$TCP{id}}) {
-		$Index{Size_Order}{"TCP:$session_id"} =
-		 $TCP{id}{$session_id}{size};
-	}
-	$number = 0;
-	foreach $session (sort {$Index{Size_Order}{$b} <=>
-	 $Index{Size_Order}{$a}} keys %{$Index{Size_Order}}) {
-		$number++;
-		$Index{Sort_Lookup}{$session} = $number;
-	}
-}
-
-
-# Sort_Index_By_Type - this calculates an appropriate order for the index
-#	files based on session type, followed by time.
-#
-sub Sort_Index_By_Type {
-	my ($service,$tcp_src_port,$tcp_dest_port,$client,$udp_src_port,
-	 $udp_dest_port,$session_id,$time,$number);
-	
-	#
-	#  Determine Session and Stream time order
-	#
-	foreach $session_id (keys %{$TCP{id}}) {
-		# Determine the service - usually by the lowest numbered port
-		$tcp_src_port = $TCP{id}{$session_id}{src_port};
-		$tcp_dest_port = $TCP{id}{$session_id}{dest_port};
-		($service,$client) = &Pick_Service_Port("TCP",$session_id,
-		 $tcp_src_port,$tcp_dest_port);
-		
-		$Index{Type_Order}{"TCP:$session_id"}{1} = 1;
-		$Index{Type_Order}{"TCP:$session_id"}{2} = $service;
-		$Index{Type_Order}{"TCP:$session_id"}{3} =
-		 $TCP{id}{$session_id}{StartTime};
-	}
-	
-	# now we sort by TCP->UDP->IP then port then time.
-	$number = 0;
-	foreach $session (sort {
-		$Index{Type_Order}{$a}{1} <=> $Index{Type_Order}{$b}{1} ||
-		$Index{Type_Order}{$a}{2} <=> $Index{Type_Order}{$b}{2} ||
-		$Index{Type_Order}{$a}{3} <=> $Index{Type_Order}{$b}{3}
-	 } keys %{$Index{Type_Order}}) {
-		$number++;
-		$Index{Sort_Lookup}{$session} = $number;
-	}
-}
-
-
-# Sort_Index_By_IP - this calculates an appropriate order for the index
-#	files based on client IP, followed by time.
-#
-sub Sort_Index_By_IP {
-	my ($service,$ip,$ip_dest,$ip_src,$client,
-	 $session_id,$time,$number,$text,$html,$rest);
-	my @IP;
-	
-	#
-	#  Determine Session and Stream time order
-	#
-	foreach $session_id (keys %{$TCP{id}}) {
-		# Determine source IP
-		# here we use the same subroutine as the index.html
-		# so that they match up.
-		($text,$html) = &Generate_TCP_IDs($session_id);
-		($ip,$rest) = split(/:/,$text,2);
-		
-		# Split on IPv4 or IPv6
-		$IP = ();
-		if ($ip =~ /\./) { @IP = split(/\./,$ip); }
-		 else { $IP[0] = $ip; }
-		
-		$Index{Type_Order}{"TCP:$session_id"}{1} = $IP[0];
-		$Index{Type_Order}{"TCP:$session_id"}{2} = $IP[1];
-		$Index{Type_Order}{"TCP:$session_id"}{3} = $IP[2];
-		$Index{Type_Order}{"TCP:$session_id"}{4} = $IP[3];
-		$Index{Type_Order}{"TCP:$session_id"}{5} =
-		 $TCP{id}{$session_id}{StartTime};
-	}
-	
-	# now we sort by IP then time
-	$number = 0;
-	foreach $session (sort {
-		$Index{Type_Order}{$a}{1} <=> $Index{Type_Order}{$b}{1} ||
-		$Index{Type_Order}{$a}{2} <=> $Index{Type_Order}{$b}{2} ||
-		$Index{Type_Order}{$a}{3} <=> $Index{Type_Order}{$b}{3} ||
-		$Index{Type_Order}{$a}{4} <=> $Index{Type_Order}{$b}{4} ||
-		$Index{Type_Order}{$a}{1} cmp $Index{Type_Order}{$b}{1} ||
-		$Index{Type_Order}{$a}{5} <=> $Index{Type_Order}{$b}{5}
-	} keys %{$Index{Type_Order}}) {
 		$number++;
 		$Index{Sort_Lookup}{$session} = $number;
 	}
@@ -2554,6 +2475,10 @@ sub Generate_SessionID {
 	#  Generate session_id string using host:port,host:port sorted on
 	#  port (low port last).
 	#
+	&logger("\$ip_src: $ip_src");
+	&logger("\$tcp_src_port: $tcp_src_port");
+	&logger("\$ip_dest: $ip_dest");
+	&logger("\$tcp_dest_port: $tcp_dest_port");
 	if ($tcp_src_port < $tcp_dest_port) {
 		$session_id = "$ip_dest:$tcp_dest_port,$ip_src:$tcp_src_port";
 		$from_server = 1;
@@ -2567,6 +2492,9 @@ sub Generate_SessionID {
 	}
 	
 	if ($type eq "TCP") {
+		if ( $TCP{id}{$session_id}{source} ) {
+			&logger("\$TCP{id}{\$session_id}{source}: $TCP{id}{$session_id}{source}");
+		}
 		if (defined $TCP{id}{$session_id}{source}) {
 			if ($TCP{id}{$session_id}{source} eq $ip_dest
 			    # JL: Also look at the port as ip_src and ip_dest
@@ -2657,11 +2585,14 @@ sub Read_Tcpdump_Record {
 	
 	### Fetch record header
 	&logger("==================================================");
+	&logger("### \$packet $packet ###");
 	$length = read(INFILE,$header_rec,($integerSize * 2 + 8));
 	&logger("\$length = read(INFILE,\$header_rec,(\$integerSize * 2 + 8));");
 	my $my_header_rec = unpack('H*', $header_rec);
 	my $my_integerSizeBy2p8=($integerSize * 2 + 8);
 	&logger("$length = read(INFILE,$my_header_rec,$my_integerSizeBy2p8);");
+	&logger("\$header_rec:");
+	&binner_d("$header_rec");
 	
 	### Quit main loop if at end of file
 	last if $length < 16;
@@ -2783,7 +2714,7 @@ sub Process_Command_Line_Arguments {
 	$Arg{httplog_name} = "httplog.text"; # JL: Old default as variable
 	$Arg{httplog_txt} = "httplog.txt";   # JL: New text format
 	$Arg{keydata} = 0;
-	$Arg{debug} = 1;
+	$Arg{debug} = 0;
 	
 	#
 	#  Check correct switches were used
