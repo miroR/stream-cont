@@ -2,36 +2,43 @@
 #
 # chread_tcp.pl -D <some-very-short-only-tcp-PCAP>-chr-i-H-r.d/ \
 #		-i -H -r <some-very-short-only-tcp-PCAP>.pcap
-#	Or similar. Help in this maimed version is incomplete.
+#	or similar. See orig Chaosreader script for Help
+#
+#				Copyright (c) 2018 Miroslav Rovis
 #
 #	Derived from Chaosreader.
 #	15-Jun-2014, ver 0.96		https://github.com/brendangregg/Chaosreader
 #	(by: Brendan Gregg Indian Larry Jens Lechtenbörger Pavel Hančar Pex)
 #
-#	Accordingly, this derived work is best released also under license:
-#                        GNU GPLv3 or later
+#	According to original's license, this derived work is best released also
+#	under same license:
+#				GNU GPLv3 or later
 #
 #	This is my (Miroslav Rovis) Perl practicing copy. Learning Perl. Lots of
 #	dirt and noise. You have been warned.
 #
 #	But this could be useful for other (hardworking) newbies to Perl... Along
-#	with lots of plain perldoc pages reading where necessary.
+#	with lots of plain perldoc pages reading where necessary. And it also could
+#	be useful in learning about the TCP-related networking matters.
 #
-#	Why am I doing this? Because I need to identify perl code of chaosreader
+#	Why am I doing this? Because I need to identify perl code of Chaosreader
 #	suitable to be modified, or my new work based on it, that can work on
 #	extracted SSL TCP streams. Because Chaosreader can't extract SSL streams,
 #	only plain HTTP TCP streams.
-#	My tshark-streams:
+#	My tshark-streams program:
 #	https://github.com/miroR/tshark-streams
 #	can extract TCP streams, both plain and SSL. But extracting the streams,
-#	using tshark, is all it does. I want to create a script (based on
-#	Chaosreader code) which would then extract data, i.e. mainly files of all
-#	kinds, from SSL streams and maybe deploy them with HTML like Chaosreader
-#	does for plain HTTP traffic.
+#	that Bash script deploying Tshark, is all it does. I want to create a
+#	script (based on Chaosreader code) which would then extract data, i.e.
+#	mainly files of all kinds, from SSL streams (and only maybe present them
+#	with HTML like Chaosreader does for plain HTTP traffic).
 #
 #	And to be able to understand the needed Chaosreader code, I've removed a
 #	lot of code that wouldn't serve my future script.
 #
+#	The following is logs kept as I was reading and removing the code. Too
+#	dirty to have been put into own git versions, but it was a lot of tries and
+#	versions.
 #	X11 VNC all removed, Bench all removed.
 #	Standalone all removed. Various replay/playback all removed.
 #	Remove sub Set_MIME_Types? Now when finds "application/atom+xml" saves w/
@@ -43,13 +50,18 @@
 #	Removed: Set_ICMP_Types, Read_Snoop_Record
 #	Removed all snoop.
 #	Removed Print_Welcome
-#	Somewere not long before the last line above I started inserting new, mostly
-#		"print..." often after unpack(...", lines, to understand the code. Will
-#		make this copy available, may help some other new explorer of Perl.
-#		(Practice by running it on (very) small traces first.)
+#	Somewere not long before the last line above I started inserting new,
+#		mostly "print..." often after unpack(...", lines, to understand the
+#		code. Will make this copy available, may help some other new explorer
+#		of Perl.  (Practice by running it on (very) small traces first.)
 #	Removed Wireless
-#	Apparently the $llc_<something> were all wireless too. Removed.
+#	Apparently the $llc_<something> were all wireless-related too. Removed.
 #	Set "$Arg{debug} = 1;" (default 0)
+#	NOTE: in some testing I revert it to default 0, my (kind of) debugging
+#		tells me way more, from commit d5a188567eccfdce18f9d8987b8d88cff2d86bb6
+#		(chread_tcp.pl of tag v0.10 onwards, until possibly I convert this
+#		sript into something else or I create something new with the knowledge
+#		gained)
 #
 #	Removed code related to Net::DNS::Packet.
 #	Removed UDP, ICMP
@@ -66,8 +78,9 @@
 #	Replaced chaotic spaces with (possibly) proper indentation tabbing.
 #
 
-#	If these uncommented in old orig, the script won't work either. I
-#	(hopefully) haven't introduced more errors/inconsistencies...
+#	If these placed and uncommented in Chaosreader proper, that orig script
+#	won't work either. I (hopefully) haven't introduced more
+#	errors/inconsistencies... (Could it be just obsolete code in Chaosreader?)
 #use strict;
 #use warnings;
 use Getopt::Long;
@@ -96,7 +109,8 @@ sub logger {
 }
 sub binner {	# logger above was initially from perlintro, and binner was
 				# copy-paste-n-modify on it, with a pun ending in -er.
-				# By this version, they work to usec level filenaming.
+				# From version v0.10, binner and binner_d work to usec level
+				# filenaming, with inclusion of tcpdump timestamps.
 	$s = clock_gettime();
 	$s =~ /\d*\.(\d*)/ ;
 	$usec=$1;
@@ -109,13 +123,15 @@ sub binner {	# logger above was initially from perlintro, and binner was
 		$my_bin .= ".";
 		$my_bin .= $tcpdump_seconds ; 
 	} else {
-		print "no \$tcpdump_seconds";
+		$my_bin .= ".";
+		$my_bin .= $packet ; 
 	} 
 	if ( $tcpdump_msecs ) {
 		$my_bin .= ".";
 		$my_bin .= $tcpdump_msecs ;
 	} else {
-		print "no \$tcpdump_msecs";
+		$my_bin .= ".";
+		$my_bin .= $packet ; 
 	} 
 	$my_bin .= ".bin";
 	my $binmessage = shift;
@@ -138,13 +154,15 @@ sub binner_d {	# see note on binner above, _d is for data, put in data
 		$my_bin_d .= ".";
 		$my_bin_d .= $tcpdump_seconds ; 
 	} else {
-		print "no \$tcpdump_seconds";
+		$my_bin .= ".";
+		$my_bin .= $packet ; 
 	} 
 	if ( $tcpdump_msecs ) {
 		$my_bin_d .= ".";
 		$my_bin_d .= $tcpdump_msecs ;
 	} else {
-		print "no \$tcpdump_msecs";
+		$my_bin .= ".";
+		$my_bin .= $packet ; 
 	} 
 	$my_bin_d .= "_d";
 	$my_bin_d .= ".bin";
@@ -255,6 +273,9 @@ if ($Arg{normal}) {
 #	trace (including several styles of tcpdump/libpcap). And there are new (or
 #	new heuristics) to add code for. If ever I find time.
 #
+	
+undef $tcpdump_seconds;
+undef $tcpdump_msecs;
 sub Open_Input_File {
 	
 	my $infile = shift;
@@ -267,11 +288,12 @@ sub Open_Input_File {
 	#
 	open(INFILE,$infile) || die "Can't open $infile: $!\n";
 	binmode(INFILE);	# for backward OSs
-	
 	#
 	#  Fetch header
 	#
 	$length = read(INFILE,$header,8);
+	&logger("\$length = read(INFILE,\$header,8");
+	&binner("$header");
 	
 	### Print status
 	print "Reading file contents,\n" unless $Arg{quiet};
@@ -282,6 +304,8 @@ sub Open_Input_File {
 	#  Try to determine if this is a tcpdump file
 	#
 	($ident) = unpack('a8',$header);
+	&logger("\$ident = the_unpack('a8',\$header)");
+	&binner("$ident");
 	
 	if ($ident =~ /^\241\262\303\324|^\324\303\262\241/ ||
 		$ident =~ /^\241\262\315\064|^\064\315\262\241/) {
@@ -318,6 +342,9 @@ sub Open_Input_File {
 		#  Nudge the filehandle past the rest of the header...
 		#
 		$length = read(INFILE,$header_rest,16);
+		&logger("\$length = read(INFILE,\$header_rest,16");
+		&logger("$length = read(INFILE,\$header_rest,16)");
+		&binner("$header_rest");
 	
 	} else {
 		#
@@ -360,13 +387,15 @@ sub Read_Input_File {
 		$packet_time = $tcpdump_seconds;
 		$packet_timefull = $tcpdump_seconds + $tcpdump_msecs/1000000;
 		$record_size = $tcpdump_length + ($integerSize * 2 + 8);
+		&logger("\$record_size = \$tcpdump_length + (\$integerSize * 2 + 8);");
+		&logger("$record_size = $tcpdump_length + ($integerSize * 2 + 8);");
 		
 		### Print status summary
 		unless ($Arg{quiet}) {
 			$bytes += $record_size;
 			if (($packet % 16) == 0) {
 				printf("%s %2.0f%% (%d/%d)","\b"x24,
-				 (100*$bytes/$SIZE),$bytes,$SIZE);
+				 (100*$bytes/$SIZE),$bytes,$SIZE); print "\n";
 			}
 		}
 		
@@ -388,12 +417,8 @@ sub Read_Input_File {
 		### Unpack ether data
 		($ether_dest,$ether_src,$ether_type,$ether_data) =
 			unpack('H12H12H4a*',$packet_data) unless $decoded;
-		#$my_ether_data = unpack('H*',$ether_data);
-		#&logger("\$ether_dest,\$ether_src,\$ether_type,\$my_ether_data;");
-		#&logger("$ether_dest,$ether_src,$ether_type,$my_ether_data;");
-		&logger("\$ether_dest,\$ether_src,\$ether_type");
-		&logger("$ether_dest,$ether_src,$ether_type");
-		&logger("--------------------------------------------------");
+		&logger("\$ether_dest,\$ether_src,\$ether_type = the_unpack('H12H12H4a*',\$packet_data)");
+		&logger("$ether_dest,$ether_src,$ether_type ...");
 		
 		#
 		#  Process extended Ethernet types (PPPoE; wireless and VLAN removed)
@@ -423,6 +448,8 @@ sub Read_Input_File {
 			unpack('nnnH12nH4a*',$packet_data) unless $decoded;
 			&logger("\$lptype,\$lladdr_type,\$lladdr_len,\$ether_src,\$ll_dummy,\$ether_type");
 			&logger("$lptype,$lladdr_type,$lladdr_len,$ether_src,$ll_dummy,$ether_type");
+			&logger("\$ether_data:");
+			&binner_d("$ether_data");
 			&logger("--------------------------------------------------");
 			if ($ether_type ne "0800") {
 			next;
@@ -435,7 +462,7 @@ sub Read_Input_File {
 		#
 		
 		### Check for IP ver
-		($ip_verNihl,$ip_rest) = unpack('Ca*',$ether_data);	# ihl ip header length
+		($ip_verNihl,$ip_rest) = unpack('Ca*',$ether_data);	# ihl: ip header length
 		&logger("\$ip_verNihl");
 		&logger("$ip_verNihl");
 		$ip_ver = $ip_verNihl & 240;
@@ -508,10 +535,10 @@ sub Read_Input_File {
 			$ip_dlength = $ip_length - $ip_options_num - 20;
 			($ip_data,$trailers) = unpack("a${ip_dlength}a*",$ip_data);
 			&logger("$ip_dlength = $ip_length - $ip_options_num - 20");
-			# This actually unpacks it into $logfile, but illegible
-			#&logger("($ip_data,$trailers) = unpack(\"a${ip_dlength}a*\",$ip_data);");
 			&logger("(\$ip_data,\$trailers) = the_unpack (a\${ip_dlength}a*,\$ip_data);");
-			&logger("\$ip_data,\$trailers: REMOVED,$trailers");
+			&logger("\$ip_data:");
+			&binner_d("$ip_data");
+			&logger("--------------------------------------------------");
 			
 			### Build text strings of IP addresses
 			$ip_src = sprintf("%u.%u.%u.%u",@ip_src);
@@ -631,7 +658,7 @@ sub Read_Input_File {
 		unless ($Arg{quiet}) {
 			if (($packet % 16) == 0) {
 				printf("%s %2.0f%% (%d/%d)","\b"x32,
-				 (100*$packet/$packets),$packet,$packets);
+				 (100*$packet/$packets),$packet,$packets); print "\n";
 			}
 		}
 		
@@ -645,52 +672,70 @@ sub Read_Input_File {
 		$drops = $IP{time}{$time}{drops};
 		undef $ip_data;
 		# Try 'n print %IP. The hash is %{$IP{time}} (see 20 lines above)?
-		# But this goes on based on "Store IP data in %IP so..." some 60 lines above.
-		# Uncomment for testing/learning/figuring out. Not sorted:
-		#for my $key ( keys(%{$IP{time}})) {
-		#	&logger("\$key: $key");
-		#	print "$key => $IP{time}{$key}{ver}\n";
-		#	&logger("\$key => \$IP{time}{\$key}{ver}");
-		#	&logger("$key => $IP{time}{$key}{ver}");
-		#	print "$key => $IP{time}{$key}{src}\n";
-		#	&logger("\$key => \$IP{time}{\$key}{src}");
-		#	&logger("$key => $IP{time}{$key}{src}");
-		#	print "$key => $IP{time}{$key}{dest}\n";
-		#	&logger("\$key => \$IP{time}{\$key}{dest}");
-		#	&logger("$key => $IP{time}{$key}{dest}");
-		#	print "$key => $IP{time}{$key}{protocol}\n";
-		#	&logger("\$key => \$IP{time}{\$key}{protocol}");
-		#	&logger("$key => $IP{time}{$key}{protocol}");
-		#	sub spacer{ print '-' x 50, "\n"; }
-		#	$spacer_m=&spacer;
-		#	&logger("--------------------------------------------------");
+		# But this goes on based on "Store IP data in %IP so..." some 60 lines
+		# above. Uncomment for testing/learning/figuring out. Either sorted or
+		# unsorted, only one.
+		#Not sorted:
+		#if (! defined $IP_time_hash_printed ) {
+		#	for my $time ( keys(%{$IP{time}})) {
+		#		&logger("\$time: $time");
+		#		print "$time => $IP{time}{$time}{ver}\n";
+		#		&logger("\$time => \$IP{time}{\$time}{ver}");
+		#		&logger("$time => $IP{time}{$time}{ver}");
+		#		print "$time => $IP{time}{$time}{src}\n";
+		#		&logger("\$time => \$IP{time}{\$time}{src}");
+		#		&logger("$time => $IP{time}{$time}{src}");
+		#		print "$time => $IP{time}{$time}{dest}\n";
+		#		&logger("\$time => \$IP{time}{\$time}{dest}");
+		#		&logger("$time => $IP{time}{$time}{dest}");
+		#		print "$time => $IP{time}{$time}{protocol}\n";
+		#		&logger("\$time => \$IP{time}{\$time}{protocol}");
+		#		&logger("$time => $IP{time}{$time}{protocol}");
+		#		&logger("\$time => \$IP{time}{\$time}{frag}{\$ip_frag}");
+		#		&binner_d("$time => $IP{time}{$time}{frag}{$ip_frag}");
+		#		&logger("--------------------------------------------------");
+		#	}
+		#	$IP_time_hash_printed = 1;
 		#}
 		# Sorted:
-		#for my $key ( sort { $a <=> $b } ( keys(%{$IP{time}})) ) {
-		#	&logger("\$key: $key");
-		#	print "$key => $IP{time}{$key}{ver}\n";
-		#	&logger("\$key => \$IP{time}{\$key}{ver}");
-		#	&logger("$key => $IP{time}{$key}{ver}");
-		#	print "$key => $IP{time}{$key}{src}\n";
-		#	&logger("\$key => \$IP{time}{\$key}{src}");
-		#	&logger("$key => $IP{time}{$key}{src}");
-		#	print "$key => $IP{time}{$key}{dest}\n";
-		#	&logger("\$key => \$IP{time}{\$key}{dest}");
-		#	&logger("$key => $IP{time}{$key}{dest}");
-		#	print "$key => $IP{time}{$key}{protocol}\n";
-		#	&logger("\$key => \$IP{time}{\$key}{protocol}");
-		#	&logger("$key => $IP{time}{$key}{protocol}");
-		#	sub spacer{ print '-' x 50, "\n"; }
-		#	$spacer_m=&spacer;
-		#	&logger("--------------------------------------------------");
+		#if (! defined $IP_time_hash_printed ) {
+		#	for my $time ( keys(%{$IP{time}})) {
+		#		&logger("\$time: $time");
+		#		print "$time => $IP{time}{$time}{ver}\n";
+		#		&logger("\$time => \$IP{time}{\$time}{ver}");
+		#		&logger("$time => $IP{time}{$time}{ver}");
+		#		print "$time => $IP{time}{$time}{src}\n";
+		#		&logger("\$time => \$IP{time}{\$time}{src}");
+		#		&logger("$time => $IP{time}{$time}{src}");
+		#		print "$time => $IP{time}{$time}{dest}\n";
+		#		&logger("\$time => \$IP{time}{\$time}{dest}");
+		#		&logger("$time => $IP{time}{$time}{dest}");
+		#		print "$time => $IP{time}{$time}{protocol}\n";
+		#		&logger("\$time => \$IP{time}{\$time}{protocol}");
+		#		&logger("$time => $IP{time}{$time}{protocol}");
+		#		&logger("\$time => \$IP{time}{\$time}{frag}{\$ip_frag}");
+		#		&binner_d("$time => $IP{time}{$time}{frag}{$ip_frag}");
+		#		&logger("--------------------------------------------------");
+		#	}
+		#	$IP_time_hash_printed = 1;
 		#}
-		
+
 		#
 		#  Reassemble IP frags
 		#
 		if (defined $IP{time}{$time}{fragged}) {
 			@IP_Frags = sort {$a <=> $b} (keys(%{$IP{time}{$time}{frag}}));
-		
+			# Again, that's defined at "Store IP data in %IP so..." some 130
+			# lines above with the line:
+			# $IP{time}{$packet_timefull}{frag}{$ip_frag} = $ip_data;
+			# However on the way to here there's also line:
+			# undef $ip_data;
+			# Also, we're in the loop "foreach $time (@Times) { ..."
+			# But we may not reach here:
+			print "##################################################";
+			print "INSIDE AT IP_Frags = sort ... \n\n\n";
+			print "##################################################";
+            
 			### If never recieved the start of the packet, skip
 			if ($IP_Frags[0] != 0) { next; }
 		
@@ -699,8 +744,19 @@ sub Read_Input_File {
 			}
 		} else {
 			$ip_data = $IP{time}{$time}{frag}{0};
+			# sub Read_Tcpdump_Record already run, these are at the last values
+			# of the loop, binner(,_d) filename creation had better take the
+			# number of the packet instead:
+			undef $tcpdump_seconds;
+			undef $tcpdump_msecs;
+			#print "$packet";
+			#print "We're at else outside at IP_Frags = sort ... \n\n\n";
+			&logger("\$ip_data = \$IP{time}{\$time}{frag}{0}");
+			&binner("$ip_data");
 		}
 		$length = length($ip_data);
+		&logger("\$length = length(\$ip_data)");
+		&logger("$length");
 		
 		#
 		# --- TCP ---
@@ -752,7 +808,18 @@ sub Process_TCP_Packet {
 	
 	### Unpack TCP data
 	($tcp_src_port,$tcp_dest_port,$tcp_seq,$tcp_ack,$tcp_offset,$tcp_flags,
-	 $tcp_header_rest,$tcp_data) = unpack('nnNNCCa6a*',$ip_data);
+		$tcp_header_rest,$tcp_data) = unpack('nnNNCCa6a*',$ip_data);
+	&logger("\$tcp_src_port,\$tcp_dest_port");
+	&logger("\$tcp_seq,\$tcp_ack,\$tcp_offset,\$tcp_flags");
+	&logger("= the_unpack(nnNNCCa6a*,\$ip_data");
+	&logger("$tcp_src_port,$tcp_dest_port");
+	&logger("$tcp_seq,$tcp_ack,$tcp_offset,$tcp_flags");
+	&logger("\$tcp_header_rest:");
+	&binner("$tcp_header_rest");
+	&logger("\$tcp_data:");
+	&binner("$tcp_data");
+	&logger("--------------------------------------------------");
+	
 	
 	### Strip off TCP options, if present
 	$tcp_offset = $tcp_offset >> 4;		# chuck out reserved bits
@@ -2589,6 +2656,7 @@ sub Read_Tcpdump_Record {
 	my $more;
 	
 	### Fetch record header
+	&logger("==================================================");
 	$length = read(INFILE,$header_rec,($integerSize * 2 + 8));
 	&logger("\$length = read(INFILE,\$header_rec,(\$integerSize * 2 + 8));");
 	my $my_header_rec = unpack('H*', $header_rec);
@@ -2615,38 +2683,17 @@ sub Read_Tcpdump_Record {
 		 $tcpdump_length_orig)
 		 = unpack('VVVV',$header_rec);
 		&logger("\$tcpdump_seconds,\$tcpdump_msecs,\$tcpdump_length,\$tcpdump_length_orig = unpack('VVVV',\$header_rec);");
-		&logger("$tcpdump_seconds,$tcpdump_msecs,$tcpdump_length, $tcpdump_length_orig,$my_header_rec;");
-		# While logger unique filename creation is based on using Time::Piece,
-		# binner and binner_d add $tcpdump_(seconds,msecs), so I defined them
-		# here. They can be called any time after Read_Tcpdump_Record has been
-		# run, I guess.
-		#$my_bin .= "$tcpdump_seconds";
-		#$my_bin .= "$tcpdump_msecs";
-		# Uncertain if abandon naming by tcpdump_(seconds,msecs).
-		# But real uniqueness of finenames for bin snippets/data only if every time
-		# binner/binner_d is called, new files are made anew. Meaning, until I
-		# rewrite some, these 12 lines below need to be stuck before every
-		# other binner, binner_d below. Else, snippets/data get appended. Not
-		# so bad, but I want better.
-		#$s = clock_gettime();
-		#$s =~ /\d*\.(\d*)/ ;
-		#$usec=$1;
-		#$my_bin = $my_log;
-		#$my_bin =~ /(\S*)\.log/ ;
-		#$my_bin=$1;
-		#$my_bin .= ".";
-		#$my_bin .= $usec;
-		#$my_bin_d = "$my_bin";
-		#$my_bin_d .= "_d";
-		#$my_bin_d .= ".bin";
-		#$my_bin .= ".bin";
+		&logger("$tcpdump_seconds,$tcpdump_msecs,$tcpdump_length,$tcpdump_length_orig,$my_header_rec;");
 		# If you uncomment these, you might get just a little bit closer to
 		# figuring out the code, if you apply a lot of perldoc
 		# reading/comparisons/other reading/learning where necessary.
+		# Else comment them out, they are not essential to script's work.
 		&binner("$header_rec");
 		open my $binfile, "<", "$my_bin" or die "Could not open $my_bin: $!";
 		my $o_tcpdump_seconds;
 		$length = read($binfile,$o_tcpdump_seconds,4);
+		&logger("\$length = read(\$binfile,\$o_tcpdump_seconds,4);");
+		&logger("$length = read(\$binfile,\$o_tcpdump_seconds,4);");
 		&binner("$o_tcpdump_seconds");
 		my $my_o_tcpdump_seconds;
 		$my_o_tcpdump_seconds = unpack('V',$o_tcpdump_seconds);
@@ -2666,7 +2713,9 @@ sub Read_Tcpdump_Record {
 	}
 	$length = read(INFILE,$tcpdump_data,$tcpdump_length);
 	# See note above why this line.
+	&logger("\$tcpdump_data (later: \$packet_data):");
 	&binner_d("$tcpdump_data");
+	&logger("--------------------------------------------------");
 	$tcpdump_drops = $tcpdump_length_orig - $tcpdump_length;
 	# Uncomment to study just the initial loop:
 	#exit(0);
@@ -2734,7 +2783,7 @@ sub Process_Command_Line_Arguments {
 	$Arg{httplog_name} = "httplog.text"; # JL: Old default as variable
 	$Arg{httplog_txt} = "httplog.txt";   # JL: New text format
 	$Arg{keydata} = 0;
-	$Arg{debug} = 0;
+	$Arg{debug} = 1;
 	
 	#
 	#  Check correct switches were used
