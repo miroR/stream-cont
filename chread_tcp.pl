@@ -89,96 +89,6 @@ use IO::Uncompress::Inflate qw(inflate $InflateError) ;
 use IO::Uncompress::RawInflate qw(rawinflate $RawInflateError) ;
 # needed for logger/binner/binner_d unique filename creation
 use Time::HiRes qw( clock_gettime usleep TIMER_ABSTIME );
-my $s;
-$s = clock_gettime();
-my $usec;
-my $my_log;
-my $my_bin;
-$my_log .= "$0-";
-$my_log =~ s|/usr/local/bin/|| ;	# if this script is elsewhere, modify.
-									# I'll name it by the file worked,
-									# when I learn to do so... Biginner...
-$my_log =~ s/.pl// ;
-$my_log .= $s;
-$my_bin = $my_log;
-$my_log .= ".log";
-sub logger {
-	my $logmessage = shift;
-	open my $logfile, ">>", "$my_log" or die "Could not open $my_log: $!";
-	say $logfile $logmessage;
-}
-sub binner {	# logger above was initially from perlintro, and binner was
-				# copy-paste-n-modify on it, with a pun ending in -er.
-				# From version v0.10, binner and binner_d work to usec level
-				# filenaming, with inclusion of tcpdump timestamps.
-	$s = clock_gettime();
-	$s =~ /\d*\.(\d*)/ ;
-	$usec=$1;
-	$my_bin = $my_log;
-	$my_bin =~ /(\S*)\.log/ ;
-	$my_bin=$1;
-	$my_bin .= ".";
-	$my_bin .= $usec;
-	if ( $tcpdump_seconds ) {
-		$my_bin .= ".";
-		$my_bin .= $tcpdump_seconds ; 
-	} else {
-		if ( $packet ) {
-			$my_bin .= ".";
-			$my_bin .= $packet ; 
-		}
-	} 
-	if ( $tcpdump_msecs ) {
-		$my_bin .= ".";
-		$my_bin .= $tcpdump_msecs ;
-	} else {
-		#print "no \$tcpdump_seconds yet/or undefined (no harm)\n";
-	} 
-	$my_bin .= ".bin";
-	my $binmessage = shift;
-	open my $binfile, ">>", "$my_bin" or die "Could not open $my_bin: $!";
-	print $binfile $binmessage;
-	&logger("created $my_bin");
-}
-sub binner_d {	# see note on binner above, _d is for data, put in data
-				# that will make for streams/sessions once cat'ed
-				# together
-	$s = clock_gettime();
-	$s =~ /\d*\.(\d*)/ ;
-	$usec=$1;
-	$my_bin_d = $my_log;
-	$my_bin_d =~ /(\S*)\.log/ ;
-	$my_bin_d=$1;
-	$my_bin_d .= ".";
-	$my_bin_d .= $usec;
-	if ( $tcpdump_seconds ) {
-		$my_bin_d .= ".";
-		$my_bin_d .= $tcpdump_seconds ; 
-	} else {
-		if ( $packet ) {
-			$my_bin .= ".";
-			$my_bin .= $packet ; 
-		}
-	} 
-	if ( $tcpdump_msecs ) {
-		$my_bin_d .= ".";
-		$my_bin_d .= $tcpdump_msecs ;
-	} else {
-		#print "no \$tcpdump_seconds yet/or undefined (no harm)\n";
-	} 
-	$my_bin_d .= "_d";
-	$my_bin_d .= ".bin";
-	my $binmessage = shift;
-	open my $binfile_d, ">>", "$my_bin_d" or die "Could not open $my_bin_d: $!";
-	print $binfile_d $binmessage;
-	&logger("created $my_bin_d");
-}
-&logger("This log ($my_log) created for printing %IP and %TCP");
-&logger("\tfor own understanding of the core functionality of this script,");
-&logger("\tfor text, with sub logger.");
-&logger("There can also be $my_bin<...>(,_d).bin");
-&logger("\tfor binary snippets/data with sub(s) binner(,_d).");
-&logger("==================================================");
 
 #
 $integerSize = length(pack('I',0));	# can make a difference for tcpdumps
@@ -262,14 +172,105 @@ if ($Arg{normal}) {
 
 # Open_Input_File - open the packet trace specified. This checks the header
 #	of the file to determine whether it is a tcpdump/libpcap
-#	trace (including several styles of tcpdump/libpcap). And there are new (or
-#	new heuristics) to add code for. If ever I find time.
+#	trace (including several styles of tcpdump/libpcap).
 #
 	
 sub Open_Input_File {
 	
 	my $infile = shift;
 	my ($length,$size);
+	
+	# logger, binner and binner_d are place here because their naming is based
+	# on $infile
+	my $s;
+	$s = clock_gettime();
+	$s =~ /(\d*)\.\d*/ ;
+	$s = $1 ;
+	my $my_log ;
+	my $my_bin ;
+	$my_log .= "$infile-" ;
+	$my_log =~ s/\.pcap// ;			# Needs to be adapted for traces w/
+										# other extensions
+	$my_log .= $s ;
+	$my_log_dir .= $my_log ;
+	$my_log_dir .= ".d" ;
+	mkdir $my_log_dir ;
+	$my_log_dir .= "/" ;
+	print $my_log;
+	$my_log .= ".log" ;
+	sub logger {
+		my $logmessage = shift;
+		open my $logfile, ">>", "$my_log" or die "Could not open $my_log: $!";
+		say $logfile $logmessage;
+	}
+	sub binner {	# logger above was initially from perlintro, and binner was
+					# copy-paste-n-modify on it, with a pun ending in -er.
+					# From version v0.10, binner and binner_d work to usec level
+					# filenaming, with inclusion of tcpdump timestamps.
+					# From version v0.11 all their snippets/data is placed in a
+					# dir named as the logger log, just s/.log/.d/ .
+		$my_bin = $my_log_dir ;
+		$s = clock_gettime();
+		$s =~ /\d*\.(\d*)/ ;
+		$usec=$1;
+		$my_bin .= $usec;
+		if ( $tcpdump_seconds ) {
+			$my_bin .= ".";
+			$my_bin .= $tcpdump_seconds ; 
+		} else {
+			if ( $packet ) {
+				$my_bin .= ".";
+				$my_bin .= $packet ; 
+			}
+		} 
+		if ( $tcpdump_msecs ) {
+			$my_bin .= ".";
+		$my_bin .= $tcpdump_msecs ;
+		} else {
+			#print "no \$tcpdump_seconds yet/or undefined (no harm)\n";
+		} 
+		$my_bin .= ".bin";
+		my $binmessage = shift;
+		open my $binfile, ">>", "$my_bin" or die "Could not open $my_bin: $!";
+		print $binfile $binmessage;
+		&logger("created $my_bin");
+	}
+	sub binner_d {	# see note on binner above, _d is for data, put in data
+					# that will make for streams/sessions once cat'ed
+					# together
+		$my_bin_d = $my_log_dir ;
+		$s = clock_gettime();
+		$s =~ /\d*\.(\d*)/ ;
+		$usec=$1;
+		$my_bin_d .= $usec;
+		if ( $tcpdump_seconds ) {
+			$my_bin_d .= ".";
+			$my_bin_d .= $tcpdump_seconds ; 
+		} else {
+			if ( $packet ) {
+				$my_bin .= ".";
+				$my_bin .= $packet ; 
+			}
+		} 
+		if ( $tcpdump_msecs ) {
+			$my_bin_d .= ".";
+			$my_bin_d .= $tcpdump_msecs ;
+		} else {
+			#print "no \$tcpdump_seconds yet/or undefined (no harm)\n";
+		} 
+		$my_bin_d .= "_d";
+		$my_bin_d .= ".bin";
+		my $binmessage = shift;
+		open my $binfile_d, ">>", "$my_bin_d" or die "Could not open $my_bin_d: $!";
+		print $binfile_d $binmessage;
+		&logger("created $my_bin_d");
+	}
+	&logger("This log ($my_log) created for printing %IP and %TCP");
+	&logger("\tfor own understanding of the core functionality of this script,");
+	&logger("\tfor text, with sub logger.");
+	&logger("There can also be dir $my_log_dir");
+	&logger("\tfor binary snippets/data, with sub(s) binner(,_d)");
+	&logger("==================================================");
 	
 	print "Opening, $infile\n\n" unless $Arg{quiet};
 	
@@ -2172,8 +2173,9 @@ sub Read_Tcpdump_Record {
 		# figuring out the code, if you apply a lot of perldoc
 		# reading/comparisons/other reading/learning where necessary.
 		# Else comment them out, they are not essential to script's work.
-		&binner("$header_rec");
-		open my $binfile, "<", "$my_bin" or die "Could not open $my_bin: $!";
+		&binner_d("$header_rec");
+		print "\$my_bin_d: $my_bin_d";
+		open my $binfile, "<", "$my_bin_d" or die "Could not open $my_bin_d: $!";
 		my $o_tcpdump_seconds;
 		$length = read($binfile,$o_tcpdump_seconds,4);
 		&logger("\$length = read(\$binfile,\$o_tcpdump_seconds,4);");
