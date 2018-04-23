@@ -180,7 +180,7 @@ sub Open_Input_File {
 	my $infile = shift;
 	my ($length,$size);
 	
-	# logger, binner and binner_d are place here because their naming is based
+	# logger, binner and binner_d are placed here because their naming is based
 	# on $infile
 	my $s;
 	$s = clock_gettime();
@@ -188,6 +188,10 @@ sub Open_Input_File {
 	$s = $1 ;
 	my $my_log ;
 	my $my_bin ;
+	$my_log = "" ;
+	$my_log_dir = "" ;
+	$my_bin = "" ;
+	$my_bin_d = "" ;
 	$my_log .= "$infile-" ;
 	$my_log =~ s/\.pcap// ;			# Needs to be adapted for traces w/
 										# other extensions
@@ -199,6 +203,13 @@ sub Open_Input_File {
 	print $my_log;
 	$my_log .= ".log" ;
 	sub logger {
+		$my_log = $my_log_dir ;
+		$my_log =~ s/\.d\/// ;
+		$my_log .= ".log" ;
+		$s = clock_gettime();
+		$s =~ /\d*\.(\d*)/ ;
+		$usec=$1;
+		$my_bin .= $usec;
 		my $logmessage = shift;
 		open my $logfile, ">>", "$my_log" or die "Could not open $my_log: $!";
 		say $logfile $logmessage;
