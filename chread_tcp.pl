@@ -248,16 +248,6 @@ if ($Arg{normal}) {
 	#
 	&Process_TCP_Sessions();
 	
-	#
-	#  Create Index Files from %Index
-	#
-	&Create_Index_Files();
-	&Create_Log_Files();
-	
-	###############
-	# --- END ---
-	#
-	&Print_Footer1();
 }
 
 
@@ -1180,44 +1170,9 @@ sub Process_TCP_Sessions {
 			print OUT &TCP_Follow_RawA($session_id);
 			close OUT;
 			
-			### Update HTML index table with link
-			$Index{HTML}[$number] .= "<a href=\"$filename\">raw1</a> ";
-			
-			#
-			#  Save ".raw2" file, client->server 1-way data assembled.
-			#
-			$filename = "session_${numtext}.${service_name}.raw2";
-			open (OUT,">$filename") ||
-			 die "ERROR14: creating $filename $!\n";
-			binmode(OUT);		# for backward OSs
-			print OUT &TCP_Follow_RawB($session_id);
-			close OUT;
-			
-			### Update HTML index table with link
-			$Index{HTML}[$number] .= "<a href=\"$filename\">raw2</a></li> ";
 		}
 		
 		next unless $Arg{output_apps};
-		
-		#
-		# --- Save Session as HTML ---
-		#
-		if ($Arg{Save_As_TCP_HTML}{$service} || $Arg{output_allhtml}) {
-			&Save_Both_HTML("TCP",$session_id,$number,$service_name,
-			 $id_html);
-		}
-		
-		
-		#
-		# --- Save Hex Dump as HTML ---
-		#
-		if ($Arg{output_hex}) {
-			my ($text, $html) = &Process_Hex("TCP", $session_id);
-			&Save_Hex_Text("TCP", $session_id, $number, $service_name,
-				$id_text, $text);
-			&Save_Hex_HTML("TCP", $session_id, $number, $service_name,
-				$id_html, $html);
-		}
 		
 		#
 		# --- Process Application Data ---
@@ -1230,8 +1185,6 @@ sub Process_TCP_Sessions {
 				&Save_HTTP_Files($session_id,$number,$service_name);
 				&Process_HTTP($session_id,$number);
 		}
-		
-		$raw = &TCP_Follow_RawB($session_id);
 	}
 }
 
@@ -1537,159 +1490,6 @@ sub Chdir {
 }
 
 
-# Create_Index_Files - Create the HTML and text index files. This reads
-#	%Index and creates the files on disk.
-#
-sub Create_Index_Files {
-	my ($html_index,$html_line,$html_links,$image_empty,$getpost_empty);
-	$getpost_empty = $image_empty = "";
-	
-	if ($Arg{output_index}) {
-		
-		
-		######################
-		# --- index.html ---
-		
-		$image_empty = "(Empty) " unless $Image{notempty};
-		$getpost_empty = "(Empty) " unless $GETPOST{notempty};
-		$httplog_empty = "(Empty) " unless $HTTPlog{notempty};
-		#
-		#  Create HTML Index file containing all reports
-		#
-		open(FILE,">index.html") || die "ERROR22: creating index: $!\n";
-		print FILE <<END_HTML;
-<html>
-<head><title>Chaosreader Report, $Arg{infile}</title></head>
-<body bgcolor="white" textcolor="black">
-<font size=+3>Chaosreader Report</font><br>
-<font size=+1>File: $Arg{infile}, Type: $TYPE, Created at: $the_date</font><p>
-<a href="image.html"><font color="blue"><b>Image Report</b></font></a>
- $image_empty - Click here for a report on captured images.<br>
-<a href="extimage.html"><font color="blue"><b>External Image Report</b></font></a>
- $image_empty - Click here for a report embedding external images.<br>
-<a href="getpost.html"><font color="blue"><b>GET/POST Report</b></font></a>
- $getpost_empty - Click here for a report on HTTP GETs and POSTs.<br>
-<a href="$Arg{httplog_name}"><font color="blue"><b>HTTP Proxy Log</b></font></a>
- $httplog_empty - Click here for a generated proxy style HTTP log.<br>
-<a href="$Arg{httplog_txt}"><font color="blue"><b>New HTTP Proxy Log</b></font></a>
- $httplog_empty - Click here for HTTP log with referers and Cookie indicators.<p>
-<font size=+2>TCP Sessions</font><br>
-<table border=2>
-END_HTML
-		for ($html_index=0; $html_index <= $#{$Index{HTML}}; $html_index++) {
-			$html_line = $Index{HTML}[$html_index];
-			next unless defined $html_line;
-			print FILE "$html_line </td></tr>\n";
-		}
-		print FILE <<END_HTML;
-</body>
-</html>
-END_HTML
-		
-		
-		######################
-		# --- index.text ---
-		
-		#
-		#  Create Text index file
-		#
-		open(FILE,">index.text") || die "ERROR23: creating index: $!\n";
-		print FILE "TCP Sessions\nFile: $Arg{infile}, "
-		 . "Type: $TYPE, Created at: $the_date\n\n";
-		print FILE @{$Index{Text}};
-		close FILE;
-		
-		
-		######################
-		# --- image.html ---
-		
-		#
-		#  Create HTML Image Index file to display images
-		#
-		open(FILE,">image.html") || die "ERROR24: creating index: $!\n";
-		print FILE <<END_HTML;
-<html>
-<head><title>Chaosreader Image Report</title></head>
-<body bgcolor="white" textcolor="black">
-<font size=+3>Chaosreader Image Report</font><br>
-<font size=+1>Created at: $the_date, Type: $TYPE</font><p>
-<font size=+2>Images</font><br>
-<table border=2>
-END_HTML
-		for ($html_index=0; $html_index <= $#{$Index{HTML}}; $html_index++) {
-			$html_line = $Image{HTML}[$html_index]{info};
-			$html_links = $Image{HTML}[$html_index]{links};
-			next unless defined $html_links;
-			print FILE "$html_line $html_links </td></tr>\n";
-		}
-		print FILE <<END_HTML;
-</table><p>
-</body>
-</html>
-END_HTML
-		
-		
-		######################
-		# --- extimage.html ---
-		
-		#
-		#  Create HTML External Image Index file to display images
-		#
-		open(FILE,">extimage.html") || die "ERROR24: creating index: $!\n";
-		print FILE <<END_HTML;
-<html>
-<head><title>Chaosreader External Image Report</title></head>
-<body bgcolor="white" textcolor="black">
-<font size=+3>Chaosreader External Image Report</font><br>
-<font size=+1>Created at: $the_date, Type: $TYPE</font><p>
-<font size=+2>Images</font><br>
-<table border=2>
-END_HTML
-		for ($html_index=0; $html_index <= $#{$Index{HTML}}; $html_index++) {
-			$html_line = $ExtImage{HTML}[$html_index]{info};
-			$html_links = $ExtImage{HTML}[$html_index]{links};
-			next unless defined $html_links;
-			print FILE "$html_line $html_links </td></tr>\n";
-		}
-		print FILE <<END_HTML;
-</table><p>
-</body>
-</html>
-END_HTML
-		
-		
-		######################
-		# --- getpost.html ---
-		
-		#
-		#  Create HTML GETPOST Index file to show HTTP GETs and POSTs
-		#
-		open(FILE,">getpost.html") || die "ERROR25: creating index: $!\n";
-		print FILE <<END_HTML;
-<html>
-<head><title>Chaosreader GET/POST Report</title></head>
-<body bgcolor="white" textcolor="black">
-<font size=+3>Chaosreader GET/POST Report</font><br>
-<font size=+1>Created at: $the_date, Type: $TYPE</font><p>
-<font size=+2>HTTP GETs and POSTs</font><br>
-<table border=2>
-END_HTML
-		for ($html_index=0; $html_index <= $#{$GETPOST{HTML}}; $html_index++) {
-			$html_line = $GETPOST{HTML}[$html_index]{info};
-			$html_links = $GETPOST{HTML}[$html_index]{query};
-			next unless defined $html_links;
-			print FILE "$html_line $html_links </td></tr>\n";
-		}
-		print FILE <<END_HTML;
-</table><p>
-</body>
-</html>
-END_HTML
-	
-	}
-}
-
-
 
 # Create_Index_Master - Create the HTML and text master index files. This
 #	reads @Master and creates the files on disk.
@@ -1821,31 +1621,6 @@ sub Print_TxtLog_Line {
 }
 
 
-# Create_Log_Files - create log files such as the HTTP log.
-#
-sub Create_Log_Files {
-	#BDG some memory debug
-	#system("pmap -x $$");
-	
-	#
-	#  Create httplog file
-	    # JL: Don't use hardcoded filename
-	#
-	open(FILE,">$Arg{httplog_name}") || die "ERROR29: creating HTTP log: $!\n";
-	foreach $time (sort { $a <=> $b }(keys (%{$HTTPlog{time}}))) {
-		print FILE $HTTPlog{time}{$time};
-	}
-	
-	close FILE;
-	
-	open(FILE,">$Arg{httplog_txt}") || die "ERROR29: creating HTTP text log: $!\n";
-	
-	foreach $time (sort { $a <=> $b }(keys (%{$HTTPtxtlog{time}}))) {
-		print FILE $HTTPtxtlog{time}{$time};
-	}
-	
-	close FILE;
-}
 
 
 
@@ -2043,184 +1818,6 @@ sub Process_Hex {
 }
 
 
-# Save_Both_HTML - Save bidirectional (coloured) data into a html file.
-#
-sub Save_Both_HTML {
-	my ($filename);
-	
-	### Input
-	my $type = shift;
-	my $session_id = shift;
-	my $number = shift;
-	my $service_name = shift;
-	my $session_text = shift;
-	my $numtext = sprintf("%04d",$number);
-	my ($base,$raw);
-	
-	$session_text = $session_id unless defined $session_text;
-	
-	### Processing
-	$session_text =~ s/,/ <-> /;
-	
-	### Checks
-	$ext = "";
-	$session_data = "";
-	if ($type eq "TCP") {
-		$base = "session";
-		#
-		# Note, the following is similar code for TCP, UDP and ICMP.
-		# However UDP and ICMP use a simple strategy to store and fetch
-		# the processed HTML; whereas TCP uses a complex yet memory
-		# efficient strategy. This is intentional - the way TCP has
-		# been stored has been tuned to reduce memory usage, as TCP has
-		# the bulk of the data (and the bulk of the memory problem). This
-		# has not been necessary with UDP and ICMP (yet).
-		#
-		if ($TCP{id}{$session_id}{BothHTML} ne "") {
-			#
-			#  If the BothHTML report has already been calculated, fetch
-			#
-			$session_data = $TCP{id}{$session_id}{BothHTML};
-		} else {
-			#
-			#  Generate a BothHTML report by following packets by time
-			#
-			foreach $time (sort {$a <=> $b}
-				(keys (%{$TCP{id}{$session_id}{time}}))) {
-				$raw = $TCP{id}{$session_id}{time}{$time}{data};
-				$raw = &Desex_HTML($raw);
-				next unless length($raw);
-				if ($TCP{id}{$session_id}{time}{$time}{dir} eq "A") {
-					$session_data .= "<font color=\"blue\">$raw</font>";
-					} else {
-						$session_data .= "<font color=\"red\">$raw</font>";
-					}
-				}
-				$session_data = &Process_This_HTML($session_data);
-				$base = "session";
-				if ($TCP{id}{$session_id}{Partial}) { $ext = ".partial"; }
-		}
-	
-	} else {
-		$base = "are_belong_to_us";
-	}
-	
-	### Do nothing if there is no data ("26" is mostly due to colour tags)
-	return unless ((defined $session_data)&&(length($session_data) > 26));
-	
-	### Output
-	$filename = "${base}_${numtext}.${service_name}${ext}.html";
-	open (OUT,">$filename") || die "ERROR30: file create, $filename: $!\n";
-	binmode(OUT);
-	print OUT "<HTML>\n<HEAD><TITLE>$number</TITLE></HEAD>" .
-	"<BODY bgcolor=\"white\">\n" .
-	"<H1>$service_name: $session_text</H1>\n" .
-	"<H2>File $Arg{infile}, Session $number</H2>\n" .
-	"<PRE WRAP=\"virtual\">\n" .
-	$session_data . "</PRE>\n</BODY>\n</HTML>\n";
-	close OUT;
-	
-	### Global Vars
-	my $length = length($session_data);
-	$Index{HTML}[$number] .= "<li><a href=\"$filename\">as_html</a></li>\n";
-	$Index{Text}[$number] .= sprintf("%-4s %-45s %-10s %8s bytes\n",
-	 '"' , "   $filename","",$length);
-}
-
-
-# Save_Hex_HTML - Save bidirectional (coloured) hex data into a html file.
-#
-sub Save_Hex_HTML {
-	my ($filename);
-	
-	### Input
-	my $type = shift;
-	my $session_id = shift;
-	my $number = shift;
-	my $service_name = shift;
-	my $session_text = shift;
-	my $session_data = shift;
-	my $numtext = sprintf("%04d",$number);
-	my ($base);
-	
-	$session_text = $session_id unless defined $session_text;
-	$session_data = "" unless defined $session_data;
-	
-	
-	### Processing
-	$session_text =~ s/,/ <-> /;
-	
-	### Checks
-	$ext = "";
-	if ($type eq "TCP") {
-		$base = "session";
-		if ($TCP{id}{$session_id}{Partial}) { $ext = ".partial"; }
-	}
-	
-	### Output
-	$filename = "${base}_${numtext}.${service_name}${ext}.hex.html";
-	open (OUT,">$filename") || die "ERROR31: file create, $filename: $!\n";
-	binmode(OUT);
-	print OUT "<HTML>\n<HEAD><TITLE>$number</TITLE></HEAD>" .
-	"<BODY bgcolor=\"white\">\n" .
-	"<H1>$service_name: $session_text</H1>\n" .
-	"<H2>File $Arg{infile}, Session $number</H2>\n" .
-	"<PRE WRAP=\"virtual\">\n" .
-	$session_data . "</PRE>\n</BODY>\n</HTML>\n";
-	close OUT;
-	
-	### Global Vars
-	my $length = length($session_data);
-	$Index{HTML}[$number] .= "<li>";
-	$Index{HTML}[$number] .= "<a href=\"$filename\">hex</a></li>\n";
-	$Index{Text}[$number] .= sprintf("%-4s %-45s %-10s %8s bytes\n",
-	 '"' , "   $filename","",$length);
-}
-
-
-# Save_Hex_Text - Save bidirectional hex data into a text file.
-#
-sub Save_Hex_Text {
-	my ($filename);
-	
-	### Input
-	my $type = shift;
-	my $session_id = shift;
-	my $number = shift;
-	my $service_name = shift;
-	my $session_text = shift;
-	my $session_data = shift;
-	my $numtext = sprintf("%04d",$number);
-	my ($base);
-	
-	$session_text = $session_id unless defined $session_text;
-	$session_data = "" unless defined $session_data;
-	
-	### Processing
-	$session_text =~ s/,/ <-> /;
-	
-	### Checks
-	$ext = "";
-	if ($type eq "TCP") {
-		$base = "session";
-		if ($TCP{id}{$session_id}{Partial}) { $ext = ".partial"; }
-	}
-	
-	### Output
-	$filename = "${base}_${numtext}.${service_name}${ext}.hex.text";
-	open (OUT,">$filename") || die "ERROR32: file create, $filename: $!\n";
-	binmode(OUT);
-	print OUT "$service_name: $session_text\n" .
-	"File $Arg{infile}, Session $number\n\n$session_data\n";
-	close OUT;
-	
-	### Global Vars
-	my $length = length($session_data);
-	$Index{Text}[$number] .= sprintf("%-4s %-45s %-10s %8s bytes\n",
-	 '"' , "   $filename","",$length);
-}
-
-
 # Save_HTTP_Files - Save HTTP components.
 #
 sub Save_HTTP_Files {
@@ -2387,28 +1984,7 @@ sub TCP_Follow_RawA {
 	foreach $seq (sort { $a <=> $b } @Seqs) {
 		$raw .= ${$TCP{id}{$session_id}{Aseq}{$seq}};
 	}
-	
-	return $raw;
-}
 
-
-# TCP_Follow_RawB - process session by TCP Seq numbers 1-way.
-#			(TCP ASSEMBLY)
-#
-sub TCP_Follow_RawB {
-	my $session_id = shift;
-	my $raw = "";
-	
-	#
-	#  Assemble TCP Sessions. Each hash contains session_ids as keys,
-	#  and the value points to another hash of sequence numbers and data.
-	#  %TCP{id}{}{Aseq} is input, and %TCP{id}{}{RawA} is output.
-	#
-	@Seqs = keys (%{$TCP{id}{$session_id}{Bseq}});
-	foreach $seq (sort { $a <=> $b } @Seqs) {
-		$raw .= ${$TCP{id}{$session_id}{Bseq}{$seq}};
-	}
-	
 	return $raw;
 }
 
@@ -2417,7 +1993,7 @@ sub TCP_Follow_RawB {
 #	number, however check if the direction is already known (eg SYN).
 #	The port arguments will not often be needed.
 #
-# NOTE: This code is different to Generate_TCP_IPs - which does the "<->"'s
+# NOTE: This code is different from Generate_TCP_IPs - which does the "<->"'s
 #
 sub Pick_Service_Port {
 	my $type = shift;
@@ -2439,21 +2015,6 @@ sub Pick_Service_Port {
 	
 	# resort to a sort
 	return sort { $a <=> $b } ($porta,$portb);
-}
-
-# Retrieve DNS name for IP address based on DNS traffic of this capture.
-# If possible, retrieve the original name for a CNAME of the IP address.
-#
-sub Get_Name_For_IP {
-	my $ip_addr = shift;
-	my $result = $ip_addr;
-	if (defined $DNS{$ip_addr}) {
-	$result = $DNS{$ip_addr};
-	while (defined $DNS{$result}) {
-	    $result = $DNS{$result};
-	}
-	}
-	return $result;
 }
 
 # Generate_SessionID - input source and dest IPs and ports, and generate
@@ -2538,14 +2099,6 @@ sub Generate_TCP_IDs {
 		}
 		$text = "$ip_src:$tcp_src_port -> $ip_dest:$tcp_dest_port";
 		$html = "$ip_src:$tcp_src_port -&gt; $ip_dest:$tcp_dest_port";
-	} else {
-	        if ($Arg{prefer_dns}) {
-		    $ip_src = &Get_Name_For_IP($ip_src);
-		    $ip_dest = &Get_Name_For_IP($ip_dest);
-		}
-		$text = "$ip_src:$tcp_src_port <-> $ip_dest:$tcp_dest_port";
-		$html = "$ip_src:$tcp_src_port &lt;-&gt; " .
-		 "$ip_dest:$tcp_dest_port";
 	}
 	
 	return ($text,$html);
@@ -2687,16 +2240,6 @@ sub Touch_Vars {
 #
 sub Process_Command_Line_Arguments {
 	my $result;
-	
-	#
-	#  Process Global Defaults into %Arg
-	#
-	foreach (@Save_As_HTML_TCP_Ports) {
-		$Arg{Save_As_TCP_HTML}{$_} = 1;
-	}
-	foreach (@Save_As_HTML_UDP_Ports) {
-		$Arg{Save_As_UDP_HTML}{$_} = 1;
-	}
 	
 	#
 	#  Command Line Defaults
