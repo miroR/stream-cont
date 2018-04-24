@@ -201,15 +201,13 @@ sub Open_Input_File {
 	mkdir $my_log_dir ;
 	$my_log_dir .= "/" ;
 	#print $my_log;
-	$my_log .= ".log" ;
 	sub logger {
-		$my_log = $my_log_dir ;
+		( $my_log_dir ) ? $my_log = $my_log_dir : ( $my_log =~ s/($my_log_dir)/..\/\1/ ) ;
 		$my_log =~ s/\.d\/// ;
 		$my_log .= ".log" ;
 		$s = clock_gettime();
 		$s =~ /\d*\.(\d*)/ ;
 		$usec=$1;
-		$my_bin .= $usec;
 		my $logmessage = shift;
 		open my $logfile, ">>", "$my_log" or die "Could not open $my_log: $!";
 		say $logfile $logmessage;
@@ -220,7 +218,8 @@ sub Open_Input_File {
 					# filenaming, with inclusion of tcpdump timestamps.
 					# From version v0.11 all their snippets/data is placed in a
 					# dir named as the logger log, just s/.log/.d/ .
-		$my_bin = $my_log_dir ;
+		( $my_log_dir ) ? $my_bin = $my_log_dir : ( $my_bin =~ s/($my_log_dir)/..\/\1/ ) ;
+		$my_log_dir =~ s/\.log/.d\// ;
 		$s = clock_gettime();
 		$s =~ /\d*\.(\d*)/ ;
 		$usec=$1;
@@ -236,20 +235,23 @@ sub Open_Input_File {
 		} 
 		if ( $tcpdump_msecs ) {
 			$my_bin .= ".";
-		$my_bin .= $tcpdump_msecs ;
+			$my_bin .= $tcpdump_msecs ;
 		} else {
 			#print "no \$tcpdump_seconds yet/or undefined (no harm)\n";
 		} 
 		$my_bin .= ".bin";
 		my $binmessage = shift;
-		open my $binfile, ">>", "$my_bin" or die "Could not open $my_bin: $!";
+		open my $binfile, ">>", "$my_bin" or
+			$my_bin =~ s/(\S*)/\.\.\/$1/ ;
+			open my $binfile, ">>", "$my_bin"
+			or die "Could not open $my_bin: $!";
 		print $binfile $binmessage;
 		&logger("created $my_bin");
 	}
 	sub binner_d {	# see note on binner above, _d is for data, put in data
 					# that will make for streams/sessions once cat'ed
 					# together
-		$my_bin_d = $my_log_dir ;
+		( $my_log_dir ) ? $my_bin_d = $my_log_dir : ( $my_bin_d =~ s/($my_log_dir)/..\/\1/ ) ;
 		$s = clock_gettime();
 		$s =~ /\d*\.(\d*)/ ;
 		$usec=$1;
@@ -259,8 +261,8 @@ sub Open_Input_File {
 			$my_bin_d .= $tcpdump_seconds ; 
 		} else {
 			if ( $packet ) {
-				$my_bin .= ".";
-				$my_bin .= $packet ; 
+				$my_bin_d .= ".";
+				$my_bin_d .= $packet ; 
 			}
 		} 
 		if ( $tcpdump_msecs ) {
@@ -998,7 +1000,7 @@ sub Process_TCP_Sessions {
 		$tcp_src_port = $TCP{id}{$session_id}{src_port};
 		$tcp_dest_port = $TCP{id}{$session_id}{dest_port};
 		($service,$client) = &Pick_Service_Port("TCP",$session_id,
-		 $tcp_src_port,$tcp_dest_port);
+			$tcp_src_port,$tcp_dest_port);
 		
 		### Fetch text name for this port
 		$service_name = $Services_TCP{$service} || $service || "0";
