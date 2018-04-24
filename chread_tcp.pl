@@ -200,7 +200,7 @@ sub Open_Input_File {
 	$my_log_dir .= ".d" ;
 	mkdir $my_log_dir ;
 	$my_log_dir .= "/" ;
-	print $my_log;
+	#print $my_log;
 	$my_log .= ".log" ;
 	sub logger {
 		$my_log = $my_log_dir ;
@@ -621,8 +621,8 @@ sub Read_Input_File {
 			&logger("\$IP{id}{$ip_id}{StartTime}: $IP{id}{$ip_id}{StartTime}");
 		} else {
 			$start_time = $IP{id}{$ip_id}{StartTime};
-			#&logger("\$start_time = \$IP{id}{\$ip_id}{StartTime}: \
-			#	$start_time = $IP{id}{$ip_id}{StartTime}");
+			&logger("\$start_time = \$IP{id}{\$ip_id}{StartTime}: \
+				$start_time = $IP{id}{$ip_id}{StartTime}");
 			$IP{time}{$start_time}{frag}{$ip_frag} = $ip_data;
 			if ($tcpdump_drops) {
 				$IP{time}{$packet_timefull}{drops} = 1;
@@ -684,52 +684,24 @@ sub Read_Input_File {
 		undef $ip_data;
 		# Try 'n print %IP. The hash is %{$IP{time}} (see 20 lines above)?
 		# But this goes on based on "Store IP data in %IP so..." some 60 lines
-		# above. Uncomment for testing/learning/figuring out. Either sorted or
-		# unsorted, only one.
-		#Not sorted:
-		#if (! defined $IP_time_hash_printed ) {
-		#	for my $time ( keys(%{$IP{time}})) {
-		#		&logger("\$time: $time");
-		#		print "$time => $IP{time}{$time}{ver}\n";
-		#		&logger("\$time => \$IP{time}{\$time}{ver}");
-		#		&logger("$time => $IP{time}{$time}{ver}");
-		#		print "$time => $IP{time}{$time}{src}\n";
-		#		&logger("\$time => \$IP{time}{\$time}{src}");
-		#		&logger("$time => $IP{time}{$time}{src}");
-		#		print "$time => $IP{time}{$time}{dest}\n";
-		#		&logger("\$time => \$IP{time}{\$time}{dest}");
-		#		&logger("$time => $IP{time}{$time}{dest}");
-		#		print "$time => $IP{time}{$time}{protocol}\n";
-		#		&logger("\$time => \$IP{time}{\$time}{protocol}");
-		#		&logger("$time => $IP{time}{$time}{protocol}");
-		#		&logger("\$time => \$IP{time}{\$time}{frag}{\$ip_frag}");
-		#		&binner_d("$time => $IP{time}{$time}{frag}{$ip_frag}");
-		#		&logger("--------------------------------------------------");
-		#	}
-		#	$IP_time_hash_printed = 1;
-		#}
-		# Sorted:
-		#if (! defined $IP_time_hash_printed ) {
-		#	for my $time ( keys(%{$IP{time}})) {
-		#		&logger("\$time: $time");
-		#		print "$time => $IP{time}{$time}{ver}\n";
-		#		&logger("\$time => \$IP{time}{\$time}{ver}");
-		#		&logger("$time => $IP{time}{$time}{ver}");
-		#		print "$time => $IP{time}{$time}{src}\n";
-		#		&logger("\$time => \$IP{time}{\$time}{src}");
-		#		&logger("$time => $IP{time}{$time}{src}");
-		#		print "$time => $IP{time}{$time}{dest}\n";
-		#		&logger("\$time => \$IP{time}{\$time}{dest}");
-		#		&logger("$time => $IP{time}{$time}{dest}");
-		#		print "$time => $IP{time}{$time}{protocol}\n";
-		#		&logger("\$time => \$IP{time}{\$time}{protocol}");
-		#		&logger("$time => $IP{time}{$time}{protocol}");
-		#		&logger("\$time => \$IP{time}{\$time}{frag}{\$ip_frag}");
-		#		&binner_d("$time => $IP{time}{$time}{frag}{$ip_frag}");
-		#		&logger("--------------------------------------------------");
-		#	}
-		#	$IP_time_hash_printed = 1;
-		#}
+		# above. Uncomment for testing/learning/figuring out.
+		if (! defined $IP_time_hash_printed ) {
+			for my $time ( sort { $a <=> $b } ( keys(%{$IP{time}})) ) {
+				&logger("\$time: $time");
+				&logger("\$time => \$IP{time}{\$time}{ver}");
+				&logger("$time => $IP{time}{$time}{ver}");
+				&logger("\$time => \$IP{time}{\$time}{src}");
+				&logger("$time => $IP{time}{$time}{src}");
+				&logger("\$time => \$IP{time}{\$time}{dest}");
+				&logger("$time => $IP{time}{$time}{dest}");
+				&logger("\$time => \$IP{time}{\$time}{protocol}");
+				&logger("$time => $IP{time}{$time}{protocol}");
+				&logger("\$time => \$IP{time}{\$time}{frag}{\$ip_frag}");
+				&binner_d("$IP{time}{$time}{frag}{$ip_frag}");
+				&logger("--------------------------------------------------");
+			}
+			$IP_time_hash_printed = 1;
+		}
 
 		#
 		#  Reassemble IP frags
@@ -865,9 +837,6 @@ sub Process_TCP_Packet {
 		&logger("\$tcp_ack = $tcp_ack");
 	}
 	
-	# Not used for TCP.
-	#$copy = $tcp_data;
-	
 	#
 	#  Generate $session_id as a unique id for this stream
 	#  (this is built from host:port,host:port - sorting on port).
@@ -882,7 +851,7 @@ sub Process_TCP_Packet {
 		# better repeat this,
 		($session_id,$from_server) = &Generate_SessionID($ip_src,
 			$tcp_src_port,$ip_dest,$tcp_dest_port,"TCP");
-		# no harm, but number packets more lines
+		# no harm, but number of finds times more lines
 		#&logger("\$session_id: $session_id, \$from_server: $from_server");
 	}
 	
@@ -895,6 +864,7 @@ sub Process_TCP_Packet {
 	### Store size
 	$TCP{id}{$session_id}{size} += length($tcp_data);
 	&logger("\$TCP{id}{$session_id}{size}: $TCP{id}{$session_id}{size}");
+	&logger("--------------------------------------------------");
 	
 	### Store the packet timestamp for the first seen packet
 	if (! defined $TCP{id}{$session_id}{StartTime}) {
@@ -1905,8 +1875,8 @@ sub Save_HTTP_Files {
 				}
 			}
 			elsif ($file_extension eq "") {
-				print "Unkown Content-Type $content_type.";
-				print "  May want to extend MIME types.\n";
+				#print "Unkown Content-Type $content_type.";
+				#print "  May want to extend MIME types.\n";
 			}
 		}
 		
@@ -2150,12 +2120,11 @@ sub Read_Tcpdump_Record {
 	
 	### Fetch record header
 	&logger("==================================================");
+	# The packet numbering does not correspond to the correct numbering, say,
+	# in Wireshark. It is so in original Chaosreader, where add this and see:
+	#print "### \$packet $packet ###\n";
 	&logger("### \$packet $packet ###");
 	$length = read(INFILE,$header_rec,($integerSize * 2 + 8));
-	&logger("\$length = read(INFILE,\$header_rec,(\$integerSize * 2 + 8));");
-	my $my_header_rec = unpack('H*', $header_rec);
-	my $my_integerSizeBy2p8=($integerSize * 2 + 8);
-	&logger("$length = read(INFILE,$my_header_rec,$my_integerSizeBy2p8);");
 	&logger("\$header_rec:");
 	&binner_d("$header_rec");
 	
@@ -2180,37 +2149,14 @@ sub Read_Tcpdump_Record {
 		 = unpack('VVVV',$header_rec);
 		&logger("\$tcpdump_seconds,\$tcpdump_msecs,\$tcpdump_length,\$tcpdump_length_orig = unpack('VVVV',\$header_rec);");
 		&logger("$tcpdump_seconds,$tcpdump_msecs,$tcpdump_length,$tcpdump_length_orig,$my_header_rec;");
-		# If you uncomment these, you might get just a little bit closer to
-		# figuring out the code, if you apply a lot of perldoc
-		# reading/comparisons/other reading/learning where necessary.
-		# Else comment them out, they are not essential to script's work.
+		# The created bin snippet/data.
 		&binner_d("$header_rec");
-		print "\$my_bin_d: $my_bin_d";
-		open my $binfile, "<", "$my_bin_d" or die "Could not open $my_bin_d: $!";
-		my $o_tcpdump_seconds;
-		$length = read($binfile,$o_tcpdump_seconds,4);
-		&logger("\$length = read(\$binfile,\$o_tcpdump_seconds,4);");
-		&logger("$length = read(\$binfile,\$o_tcpdump_seconds,4);");
-		&binner("$o_tcpdump_seconds");
-		my $my_o_tcpdump_seconds;
-		$my_o_tcpdump_seconds = unpack('V',$o_tcpdump_seconds);
-		&logger("\$my_o_tcpdump_seconds: $my_o_tcpdump_seconds");
-		my $o_tcpdump_msecs;
-		$length = read($binfile,$o_tcpdump_msecs,4);
-		&binner("$o_tcpdump_msecs");
-		my $my_o_tcpdump_msecs;
-		$my_o_tcpdump_msecs = unpack('V',$o_tcpdump_msecs);
-		&logger("\$my_o_tcpdump_msecs: $my_o_tcpdump_msecs");
-		my $o_tcpdump_length;
-		$length = read($binfile,$o_tcpdump_length,4);
-		&binner("$o_tcpdump_length");
-		my $my_o_tcpdump_length;
-		$my_o_tcpdump_length = unpack('V',$o_tcpdump_length);
-		&logger("\$my_o_tcpdump_length: $my_o_tcpdump_length");
+		# Can be read too.
+		#open my $binfile, "<", "$my_bin_d" or die "Could not open $my_bin_d: $!";
 	}
 	$length = read(INFILE,$tcpdump_data,$tcpdump_length);
 	# See note above why this line.
-	&logger("\$tcpdump_data (later: \$packet_data):");
+	&logger("\$tcpdump_data (later: \$packet_data, same as \$header_rec above, always?):");
 	&binner_d("$tcpdump_data");
 	&logger("--------------------------------------------------");
 	$tcpdump_drops = $tcpdump_length_orig - $tcpdump_length;
@@ -2450,4 +2396,12 @@ Data types,
 				-> EndTime
 				-> size
 				-> knowndir
+
+	%Index
+		-> @HTML
+		-> @Text
+		-> Time_Order
+			-> $session_timeid
+		-> Sort_Lookup
+			-> $session_timeid
 
