@@ -290,17 +290,25 @@ sub Open_Input_File {
 
 sub logger {
 	if ( $my_log_dir =~ /\.\.\// ) {
-		print "\$my_log_dir: $my_log_dir \n";
+		#print "\$my_log_dir: $my_log_dir \n";
 		$my_log_dir =~ /\.\.\/(\S*)/ ;
 		$my_log = $1;
-		print "\$my_log_dir: $my_log_dir \n";
-		print "\$my_log: $my_log \n";
+		#print "\$my_log_dir: $my_log_dir \n";
+		#print "\$my_log: $my_log \n";
 	}
-	my $up_chdir = "..";
-	( chdir $up_chdir ) unless ( stat($my_log_dir) );
 	$my_log = $my_log_dir;
 	$my_log =~ s/\.d\/// ;
 	$my_log .= ".log" ;
+	if ( stat($my_log_dir) ) {
+		# nothing to do
+	} else {
+		my $up_chdir = "..";
+		$my_log_tmp = $up_chdir ;
+		$my_log_tmp .= "/" ;
+		#print "\$my_log_tmp: $my_log_tmp \n";
+		$my_log_tmp .= $my_log ;
+		$my_log = $my_log_tmp ;
+	}
 	$s = clock_gettime();
 	$s =~ /\d*\.(\d*)/ ;
 	$usec=$1;
@@ -976,11 +984,8 @@ sub Process_TCP_Sessions {
 	#
 	foreach $session_id (keys %{$TCP{id}}) {
 		$number = $Index{Sort_Lookup}{"TCP:$session_id"};
-		# Prints in Arg{the_dir}.
-		&logger("\$my_log_dir;");
-		&logger("$my_log_dir;");
-		&logger("\$my_log;");
-		&logger("$my_log;");
+		# Would print in Arg{the_dir}, so $my_log adapted.
+		#&logger("\$my_log: $my_log");
 		&logger("\$session_id;");
 		&logger("$session_id");
 		&logger("\$number;");
@@ -995,7 +1000,6 @@ sub Process_TCP_Sessions {
 		$ip_dest = $TCP{id}{$session_id}{dest};
 		$tcp_src_port = $TCP{id}{$session_id}{src_port};
 		$tcp_dest_port = $TCP{id}{$session_id}{dest_port};
-		# Prints in Arg{the_dir}.
 		&logger("\$ip_src = \$TCP{id}{$session_id}{src};");
 		&logger("$ip_src = $TCP{id}{$session_id}{src};");
 		&logger("\$ip_dest = \$TCP{id}{$session_id}{dest};");
@@ -1009,9 +1013,7 @@ sub Process_TCP_Sessions {
 		
 		### Fetch text name for this port
 		$service_name = $Services_TCP{$service} || $service || "0";
-		# Prints in Arg{the_dir}.
-		&logger("\$service_name;");
-		&logger("$service_name");
+		&logger("\$service_name: $service_name");
 		
 		#
 		#  Don't actually save any files if CLI args say not to
@@ -1063,9 +1065,7 @@ sub Process_TCP_Sessions {
 			$duration = ($TCP{id}{$session_id}{EndTime} -
 			 $TCP{id}{$session_id}{StartTime});
 			$duration = sprintf("%.0f",$duration);
-			# Prints in Arg{the_dir}.
-			&logger("\$duration;");
-			&logger("$duration");
+			&logger("\$duration: $duration");
 			if ($TCP{id}{$session_id}{Partial}) { $partial = "yes"; }
 			 else { $partial = "no"; }
 			
@@ -1100,11 +1100,8 @@ sub Process_TCP_Sessions {
 		$duration = ($TCP{id}{$session_id}{EndTime} -
 		 $TCP{id}{$session_id}{StartTime});
 		$duration = sprintf("%.0f",$duration);
-		# Prints in Arg{the_dir}.
-		&logger("\$starttime;");
-		&logger("$starttime");
-		&logger("\$duration;");
-		&logger("$duration");
+		&logger("\$starttime: $starttime");
+		&logger("\$duration: $duration");
 		
 		### Generate session strings
 		($id_text,$id_html) = &Generate_TCP_IDs($session_id);
@@ -1233,6 +1230,8 @@ sub Process_HTTP {
 		### Calc duration
 		    $time1 = $Times[$i+1] || $time;
 		$duration = $time1 - $time;
+		&logger("\$duration = \$time1 - \$time");
+		&logger("$duration = $time1 - $time");
 		
 		# some magic
 		$reply = "";
@@ -1247,6 +1246,7 @@ sub Process_HTTP {
 			} else {
 				$request .= $next;
 			}
+			&binner("$request");
 		}
 		$i++; # speed
 		$partnum++;
@@ -1257,6 +1257,11 @@ sub Process_HTTP {
 			($referer) = $request =~ /\sReferer:\s(\S*)/is;
 			($cookie) = $request =~ /\sCookie:\s(\S*)/is;
 			($setcookie) = $reply =~ /\sSet-Cookie:\s(\S*)/is;
+			&logger("\$request: $request");
+			&logger("\$host: $host");
+			&logger("\$referer: $referer");
+			&logger("\$cookie: $cookie");
+			&logger("\$setcookie: $setcookie");
 			
 			### Get the site string
 			($site) = $request =~ /^GET (\S*)\s/;
