@@ -1030,9 +1030,29 @@ sub Process_TCP_Sessions {
 		$rawboth = "";
 		foreach $time (sort {$a <=> $b}
 			(keys (%{$TCP{id}{$session_id}{time}}))) {
+				# gets: 1501068174.74363 => HASH(0x5c5d9ba8b8
+				#&binner("$time => $TCP{id}{$session_id}{time}");
+				# gets: 1501068174.74363 => 
+				#&binner("$time => $TCP{id}{$session_id}{$time}");
+				# gets: 1501068174.74363 => 
+				#&binner("$time => $TCP{id}{$session_id}{$time}{data}");
+				# This does it:
+				&binner("$time => $TCP{id}{$session_id}{time}{$time}{data}");
+				# Well, it's what's in the orig code :( and it took me time.
+				# Problem is, I read (a lot) perldoc perlref. Still vague.
+		}
+		
+		print STDOUT "FAKE-1";
+		$response = <STDIN> // next ;
+
+		foreach $time (sort {$a <=> $b}
+			(keys (%{$TCP{id}{$session_id}{time}}))) {
 			$rawboth .= $TCP{id}{$session_id}{time}{$time}{data};
 		}
 		$length = length($rawboth);
+		&logger("\$length(\$rawboth)");
+		&logger("\$rawboth:");
+		&binner("$rawboth");
 		
 		#
 		# --- Check for Min and Max size ---
@@ -1045,7 +1065,7 @@ sub Process_TCP_Sessions {
 		printf "%6s  %-45s  %s\n",$numtext,$session_id,$service_name
 			unless $Arg{quiet};
 		
-		print STDOUT "FAKE0";
+		print STDOUT "FAKE00";
 		$response = <STDIN> // next ;
 		
 		#
@@ -1083,7 +1103,7 @@ sub Process_TCP_Sessions {
 			close OUT;
 		}
 		
-		print STDOUT "FAKE1";	# by this point created: session_NNNN.info
+		print STDOUT "FAKE01";	# by this point created: session_NNNN.info
 		$response = <STDIN> // next ;
 		
 		#
@@ -1101,7 +1121,7 @@ sub Process_TCP_Sessions {
 		### Generate session strings
 		($id_text,$id_html) = &Generate_TCP_IDs($session_id);
 		
-		print STDOUT "FAKE2";
+		print STDOUT "FAKE02";
 		$response = <STDIN> // next ;
 		
 		#
@@ -1120,7 +1140,7 @@ sub Process_TCP_Sessions {
 			print OUT $rawboth;
 			close OUT;
 			
-		print STDOUT "FAKE3";	# by this point created: session_NNNN_PORT.raw
+		print STDOUT "FAKE03";	# by this point created: session_NNNN_PORT.raw
 		$response = <STDIN> // next ;
 		
 			#
@@ -1135,7 +1155,7 @@ sub Process_TCP_Sessions {
 			
 		}
 			
-		print STDOUT "FAKE4";	# by this point created: session_NNNN_PORT.raw1
+		print STDOUT "FAKE04";	# by this point created: session_NNNN_PORT.raw1
 		$response = <STDIN> // next ;
 		
 		next unless $Arg{output_apps};
@@ -1149,10 +1169,15 @@ sub Process_TCP_Sessions {
 			#     9050 is Tor (socks4a, but works good enough for me).
 			$service == 8118 or $service == 9050)  {
 				&Save_HTTP_Files($session_id,$number,$service_name);
+			
+		print STDOUT "FAKE05";	# by this point created: session_NNNN_part_NN.data
+								# by this point created: session_NNNN_part_NN.html
+		$response = <STDIN> // next ;
+
 				&Process_HTTP($session_id,$number);
 		}
 			
-		print STDOUT "FAKE5";
+		print STDOUT "FAKE06";
 		$response = <STDIN> // next ;
 	}
 }
@@ -1235,8 +1260,7 @@ sub Process_HTTP {
 			&logger("\$cookie: $cookie");
 			&logger("\$setcookie: $setcookie");
 			
-		print STDOUT "FAKE6";	# by this point created: session_NNNN_part_NN.data
-								# by this point created: session_NNNN_part_NN.html
+		print STDOUT "FAKE07";
 		$response = <STDIN> // next ;
 			
 			### Get the site string
@@ -1287,7 +1311,7 @@ sub Process_HTTP {
 		$result = $Result_Names{$status} || "TCP_HIT";
 		}
 			
-		print STDOUT "FAKE7";
+		print STDOUT "FAKE08";
 		$response = <STDIN> // next ;
 		
 		#
@@ -1314,11 +1338,11 @@ sub Process_HTTP {
 		
 		}
 			
-		print STDOUT "FAKE8";
+		print STDOUT "FAKE09";
 		$response = <STDIN> // next ;
 	}
 			
-		print STDOUT "FAKE9";
+		print STDOUT "FAKE10";
 		$response = <STDIN> // next ;
 }
 
