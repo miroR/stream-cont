@@ -147,7 +147,6 @@ if ($Arg{normal}) {
 	
 	### cd to output
 	&Chdir($Arg{output_dir});
-	&Print_Header2();
 	
 	### Determine Session and Stream time order
 	%Index = (); %Image = (); %ExtImage = (); %GETPOST = ();
@@ -1106,38 +1105,6 @@ sub Process_TCP_Sessions {
 		### Generate session strings
 		($id_text,$id_html) = &Generate_TCP_IDs($session_id);
 		
-		### Construct HTML table row containing session data
-		# JL: Added id attribute as link target
-		$Index{HTML}[$number] = "<tr id=\"$number\">" .
-		 "<td><i>$number.</i></td>" .
-		 "<td><b>$starttime</b></td><td>$duration s</td><td> " .
-		 "<font color=\"blue\">$id_html " .
-		 "</font></td><td> <font color=\"red\">" .
-		 "$service_name</font></td><td> <font color=\"green\"> " .
-		 "$length bytes</font></td><td>\n";
-		
-		### Construct text line containing session data
-		$Index{Text}[$number] .= sprintf("%-4s %-45s %-10s %8s bytes\n",$number,
-		 $id_text,"($service_name)",$length);
-		
-		### Construct image info line (in case it is needed)
-		$Image{HTML}[$number]{info} = "<tr><td><i>$number.</i>" .
-		 "</td><td><b>$starttime</b></td><td> " .
-		 "<font color=\"blue\">$id_html </font></td><td><td>\n";
-		
-		### JL: Construct external image info line (in case it is needed)
-		$ExtImage{HTML}[$number]{info} = "<tr><td><i>$number.</i>" .
-		 "</td><td><b>$starttime</b></td><td> " .
-		 "<font color=\"blue\">$id_html </font></td><td><td>\n";
-		
-		### Construct GETPOST info line (in case it is needed)
-		# starttime and host:port... are formatted differently so that
-		# they are narrow and leave more room for the sub table.
-		$GETPOST{HTML}[$number]{info} = "<tr><td><i>$number.</i>" .
-		 "</td><td><b>$starttime</b></td><td> " .
-		 "<font color=\"blue\">$id_html </font></td><td><td>\n";
-		
-		
 		#
 		# --- Save Raw Sessions to Disk ---
 		#
@@ -1153,9 +1120,6 @@ sub Process_TCP_Sessions {
 			binmode(OUT);		# for backward OSs
 			print OUT $rawboth;
 			close OUT;
-			
-			### Update HTML index table with link
-			$Index{HTML}[$number] .= "<li><a href=\"$filename\">raw</a> ";
 			
 			#
 			#  Save ".raw1" file, server->client 1-way data assembled.
@@ -1228,7 +1192,7 @@ sub Process_HTTP {
 		next unless $request =~ /^(GET|POST)\s/; # speed
 		
 		### Calc duration
-		    $time1 = $Times[$i+1] || $time;
+		$time1 = $Times[$i+1] || $time;
 		$duration = $time1 - $time;
 		&logger("\$duration = \$time1 - \$time");
 		&logger("$duration = $time1 - $time");
@@ -1285,17 +1249,6 @@ sub Process_HTTP {
 			
 			$result = $Result_Names{$status} || "TCP_HIT";
 			
-			### Store the log entry
-			$HTTPlog{time}{$time} =
-				Print_Log_Line($number,$time,$duration,
-					$src,$dest,$result,$status,$size,
-					"GET",$site,"-","NONE","","-",$type);
-			$HTTPtxtlog{time}{$time} =
-				Print_TxtLog_Line($number,$time,
-					$referer,$cookie,$setcookie,
-					"GET",$site);
-			$HTTPlog{notempty} = 1;
-			
 			### JL: External image data.
 			if ( defined $ExtImage{HTML}[$number]{parts}[$partnum] ) {
 				$ExtImage{HTML}[$number]{links} .= "<img src=\"$site\"> ";
@@ -1350,80 +1303,12 @@ sub Process_HTTP {
 				}
 				# check it looks like a GET,
 				# JL: Why only those with parameters?
-			#if ($get =~ /=/) {
-			
-			#
-			#  Populate %GETPOST with a table containing the GET data
-			#
-			if (! defined $GETPOST{HTML}[$number]{query}) {
-				$GETPOST{HTML}[$number]{info} .=
-				 "<font color=\"red\">GET</font></td><td width=70%>";
-				$GETPOST{notempty} = 1;
-			} else {
-				$GETPOST{HTML}[$number]{query} .= "<hr>\n";
-			}
-			
-			#
-			#  Generate table of query key value pairs
-			#
-			$GETPOST{HTML}[$number]{query} .= "$site<br><table border=1>\n";
-			@Terms = split(/&/,$get);
-			foreach $term (@Terms) {
-				($var,$value) = split(/=/,$term);
-				$value =~ tr/+/ /;
-				$value =~ s/%([a-f0-9][a-f0-9])/pack("C",hex($1))/egi;
-				$value =~ s/</&lt;/g;
-				$value =~ s/>/&gt;/g;
-				$value =~ s/\n/<br>\n/g;
-				$GETPOST{HTML}[$number]{query} .=
-				 "<tr><td><b>$var</b></td>" .
-				 "<td><font face=\"Courier\">$value</font></td></tr>\n";
-			}
-			$GETPOST{HTML}[$number]{query} .= "</table>\n";
-			#}
 			
 		} elsif ($request =~ /^POST .* HTTP/) {
 		
 		### Get the POST strings
 		($junk,$post,$junk1) = split(/\n\n|\r\n\r\n/,$request);
 		
-		# check it looks like a POST
-		if ($post =~ /=/) {
-			
-			#
-			#  Populate %GETPOST with a table containing the POST data
-			#
-			if (! defined $GETPOST{HTML}[$number]{query}) {
-				$GETPOST{HTML}[$number]{info} .=
-				 "<font color=\"red\">POST</font></td><td width=70%>";
-				$GETPOST{notempty} = 1;
-			} else {
-				$GETPOST{HTML}[$number]{query} .= "<hr>\n";
-			}
-			
-			($site) = $request =~ /^POST (\S*)\s/;
-			
-			$post =~ s/HTTP .*//s;
-			
-			#
-			#  Generate table of query key value pairs
-			#
-			$GETPOST{HTML}[$number]{query} .= "$site<br><table border=1>\n";
-			@Terms = split(/&/,$post);
-			foreach $term (@Terms) {
-				($var,$value) = split(/=/,$term);
-				$value =~ tr/+/ /;
-				$value =~
-				 s/%([a-fA-F0-9][a-fA-F0-9])/pack("C", hex($1))/eg;
-				$value =~ s/</&lt;/g;
-				$value =~ s/>/&gt;/g;
-				$value =~ s/\n/<br>/g;
-				$GETPOST{HTML}[$number]{query} .=
-				 "<tr><td><b>$var</b></td>" .
-				 "<td><font face=\"Courier\">$value</font></td></tr>\n";
-			}
-			$GETPOST{HTML}[$number]{query} .= "</table>\n";
-			}
 		}
 	}
 }
@@ -1451,35 +1336,6 @@ sub Sort_Index_By_Time {
 }
 
 
-# Print_Header1 - print program welcome message.
-#
-sub Print_Header1 {
-	unless ($Arg{quiet}) {
-		print "Reading $TYPE log...\n";
-		printf "%6s  %-45s  %s\n","Packet",
-			"Session (host:port <=> host:port)","Length";
-	}
-}
-
-
-# Print_Header2 - print header before loading the file
-#
-sub Print_Header2 {
-	print "\nCreating files...\n" unless $Arg{quiet};
-	printf "%6s  %-45s  %s\n","Num","Session (host:port <=> host:port)",
-		"Service" unless $Arg{quiet};
-}
-
-
-# Print_Footer1 - print footer at end of program.
-#
-sub Print_Footer1 {
-	if ($Arg{output_index}) {
-		print "\nindex.html created.\n" unless $Arg{quiet};
-	}
-}
-
-
 # Chdir - change directory with error
 #
 sub Chdir {
@@ -1493,140 +1349,6 @@ sub Chdir {
 		 die "ERROR21: Can't cd to $dir: $!\n";
 	}
 }
-
-
-
-# Create_Index_Master - Create the HTML and text master index files. This
-#	reads @Master and creates the files on disk.
-#
-sub Create_Index_Master {
-	
-	my ($start,$end,$dir,$file,$index,$duration);
-	
-	if ($Arg{output_index}) {
-		
-		#
-		#  Create most recent link
-		#
-		
-		$dir = $Master[$#Master]{dir};
-		$recentname = "most_recent_index";
-		unlink("$recentname");
-		# don't die on symlink error, it's not essential
-		symlink("$dir","$recentname");
-		
-		#
-		#  Create HTML Index file containing all reports
-		#
-		open(FILE,">index.html") || die "ERROR26: creating index: $!\n";
-		print FILE <<END_HTML;
-<html>
-<head><title>Chaosreader Master Index</title></head>
-<body bgcolor="white" textcolor="black" vlink="blue">
-<font size=+3>Chaosreader Master Index</font><br>
-<font size=+1>Created at: $the_date, Type: $TYPE</font><p>
-<a href="$recentname/index.html"><font color="red">
-<b>Most Recent Report</b></font></a>
- - Click here for the most recent index, and click reload for updates.<p>
-<font size=+2>Chaosreader Reports</font><br>
-<table border=2>
-END_HTML
-		for ($index=0; $index <= $#Master; $index++) {
-			$start = $Master[$index]{starttime};
-			$end = $Master[$index]{endtime};
-			$dir = $Master[$index]{dir};
-			$file = $Master[$index]{file};
-			$size = $Master[$index]{size};
-			$duration = $Master[$index]{duration};
-			$html_line = "<tr><td><i>". ($index+1) . "</i></td>" .
-			 "<td><b>$start</b></td><td><b>$end</b></td>\n" .
-			 "<td>$duration s</td>" . "<td><font color=\"green\"> " .
-			 "$size bytes</font></td>" .
-			 "<td><a href=\"$dir/index.html\">$dir/$file</a></td></tr>\n";
-			print FILE "$html_line </td></tr>\n";
-		}
-		print FILE <<END_HTML;
-</table><p>
-END_HTML
-		print FILE <<END_HTML;
-</table>
-</body>
-</html>
-END_HTML
-		
-		#
-		#  Create Text index file
-		#
-		open(FILE,">index.text") || die "ERROR27: creating index: $!\n";
-		print FILE "Master Indexes\nCreated at: $the_date, Type: $TYPE\n\n";
-		for ($index=0; $index <= $#Master; $index++) {
-			$start = $Master[$index]{starttime};
-			$end = $Master[$index]{endtime};
-			$dir = $Master[$index]{dir};
-			$file = $Master[$index]{file};
-			$size = $Master[$index]{size};
-			$duration = $Master[$index]{duration};
-			printf FILE "%-25s %3s s %8s b  %s\n",$start,$duration,
-				$size,"$dir/index.text";
-		}
-		close FILE;
-	}
-}
-
-
-# JL: Print a line for the HTTPlog
-#
-sub Print_Log_Line {
-	my $number = shift;
-	my $time = shift;
-	my $duration = shift;
-	my $src = shift;
-	my $dest = shift;
-	my $result = shift;
-	my $status = shift;
-	my $size = shift;
-	my $method = shift;
-	my $site = shift;
-	my $type = shift;
-	
-	if ($Arg{httplog_html}) {
-		sprintf("<pre><a href=\"index.html#%d\">%d</a>" .
-			" %9d.%03d %6d " .
-			"%-15s %-15s %s/%03d %d %s %s %s %s%s/%s %s</pre><br/>\n",
-			$number,$number,
-			int($time),(($time - int($time))*1000),($duration*1000),
-			$src,$dest,$result,$status,$size,
-			$method,$site,"-","NONE","","-",$type);
-	} else {
-		sprintf("%9d.%03d %6d %s %s/%03d %d %s %s %s %s%s/%s %s\n",
-			int($time),(($time - int($time))*1000),($duration*1000),
-			$src,$result,$status,$size,
-			$method,$site,"-","NONE","","-",$type);
-	}
-}
-
-# JL: Print a line for the new text HTTPlog
-#
-sub Print_TxtLog_Line {
-	my $number = shift;
-	my $time = shift;
-	my $referer = shift;
-	my $cookie = shift;
-	my $setcookie = shift;
-	my $method = shift;
-	my $site = shift;
-	
-	($second, $minute, $hour, $dayOfMonth, $month, $yearOffset, $dayOfWeek, $dayOfYear, $daylightSavings) = localtime($time);
-	$referer = "Referer: " . $referer if $referer ne "";
-	$cookie = "Cookie sent." if $cookie ne "";
-	$setcookie = "Sets cookie." if $setcookie ne "";
-	sprintf("%-4s %02d:%02d:%02d %s %s %s %s %s\n",
-		$number,$hour,$minute,$second,
-		$method,$site,$referer,$cookie,$setcookie);
-}
-
-
-
 
 
 # File_Type - return file extension for given data, else "data".
@@ -1671,86 +1393,6 @@ sub Is_Image {
 	return ($ext_types{$ext} eq "image");
 }
 
-
-# Desex_HTML - Removes HTML tags ("<" and ">") from data, so that it no
-#		longer interferes when printed as HTML.
-#
-sub Desex_HTML {
-	### Input
-	my $data = shift;
-	
-	### Process
-	# remove "<" and ">"s
-	$data =~ s/</&lt;/g;
-	$data =~ s/>/&gt;/g;
-	
-	### Return
-	return $data;
-}
-
-
-
-# Process_BothHTML - Process the HTML 2-way session. Remove binary junk
-#			that doesn't render well in a browser.
-#
-sub Process_BothHTML {
-	### Input
-	my $type = shift;
-	my $session_id = shift;
-	my $plain = shift;
-	my $wrapped = "";
-	my $index = 0;
-	my $counter = 0;
-	my $intag = 0;
-	my ($char,$data);
-	
-	if ($type eq "TCP") {
-		$data = $TCP{id}{$session_id}{BothHTML};
-	}
-	
-	### Process (order dependant)
-	$data =~ s/font color="red">     \0</font color="red"></g;
-	$data =~ tr/\040-\176\n\r\f/./c;		# max 376, was 245
-	if (defined $plain) {
-		# This is a plain style of line wrap
-		$data =~ s/([^\n\f<>]{$WRAP})/$&\n/g;
-	} else {
-		# This is a fancy line wrap, a green ">" starts the wrapped lines
-		$data =~ s/([^\n\f<>]{$WRAP})/$&\n<font color="green">&gt;<\/font>/g;
-	}
-	
-	### Save
-	if ($type eq "TCP") {
-		$TCP{id}{$session_id}{BothHTML} = $data;
-	}
-}
-
-# Process_This_HTML - Process the HTML 2-way session. Remove binary junk
-#			that doesn't render well in a browser.
-#
-sub Process_This_HTML {
-	### Input
-	my $data = shift;
-	my $plain = shift;
-	my $wrapped = "";
-	my $index = 0;
-	my $counter = 0;
-	my $intag = 0;
-	my ($char);
-	
-	### Process (order dependant)
-	$data =~ s/font color="red">     \0</font color="red"></g;
-	$data =~ tr/\040-\176\n\r\f/./c;		# max 376, was 245
-	if (defined $plain) {
-		# This is a plain style of line wrap
-		$data =~ s/([^\n\f<>]{$WRAP})/$&\n/g;
-	} else {
-		# This is a fancy line wrap, a green ">" starts the wrapped lines
-		$data =~ s/([^\n\f<>]{$WRAP})/$&\n<font color="green">&gt;<\/font>/g;
-	}
-	
-	return $data;
-}
 
 
 # Process_Hex - Create the coloured HTML 2-way hex dump, and a text dump.
