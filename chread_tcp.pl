@@ -8,7 +8,7 @@
 #
 #	Derived from Chaosreader.
 #	15-Jun-2014, ver 0.96		https://github.com/brendangregg/Chaosreader
-#	(by: Brendan Gregg Indian Larry Jens Lechtenbörger Pavel Hančar Pex)
+#	(by: Brendan Gregg, Indian Larry, Jens Lechtenbörger, Pavel Hančar, Pex)
 #
 #	According to original's license, this derived work is best released also
 #	under same license:
@@ -179,8 +179,9 @@ sub Open_Input_File {
 	my $infile = shift;
 	my ($length,$size);
 	
-	# logger and binner are placed after this function because their naming is
-	# based on $infile, and this is non-expert preparation of context for them
+	# subs logger and binner are placed after this function because their
+	# naming is based on $infile, and this is non-expert preparation of context
+	# for them
 	my $s;
 	$s = clock_gettime();
 	$s =~ /(\d*)\.\d*/ ;
@@ -199,7 +200,6 @@ sub Open_Input_File {
 	mkdir $my_log_dir ;
 	$my_log_dir .= "/" ;
 	$my_log .= ".log" ;
-	#print $my_log, "\n";
 
 	&logger("This log ($my_log) created for printing %IP and %TCP");
 	&logger("\tfor own understanding of the core functionality of this script,");
@@ -289,11 +289,8 @@ sub Open_Input_File {
 
 sub logger {
 	if ( $my_log_dir =~ /\.\.\// ) {
-		#print "\$my_log_dir: $my_log_dir \n";
 		$my_log_dir =~ /\.\.\/(\S*)/ ;
 		$my_log = $1;
-		#print "\$my_log_dir: $my_log_dir \n";
-		#print "\$my_log: $my_log \n";
 	}
 	$my_log = $my_log_dir;
 	$my_log =~ s/\.d\/// ;
@@ -304,7 +301,6 @@ sub logger {
 		my $up_chdir = "..";
 		$my_log_tmp = $up_chdir ;
 		$my_log_tmp .= "/" ;
-		#print "\$my_log_tmp: $my_log_tmp \n";
 		$my_log_tmp .= $my_log ;
 		$my_log = $my_log_tmp ;
 	}
@@ -323,7 +319,6 @@ sub binner {	# logger above was initially from perlintro, and binner was
 				# From version v0.11 all their snippets/data is placed in a
 				# dir named as the logger log, just s/.log/.d/ .
 	( $my_log_dir ) ? $my_bin = $my_log_dir : ( $my_bin =~ s/($my_log_dir)/..\/\1/ ) ;
-	#$my_log_dir =~ s/\.log/.d\// ;
 	$s = clock_gettime();
 	$s =~ /\d*\.(\d*)/ ;
 	$usec=$1;
@@ -989,7 +984,6 @@ sub Process_TCP_Sessions {
 		&logger("$session_id");
 		&logger("\$number;");
 		&logger("$number");
-		#exit(0);
 		
 		#
 		#  Determine the service - usually by the lowest numbered port, eg,
@@ -1013,7 +1007,7 @@ sub Process_TCP_Sessions {
 		### Fetch text name for this port
 		$service_name = $Services_TCP{$service} || $service || "0";
 		&logger("\$service_name: $service_name");
-		
+
 		#
 		#  Don't actually save any files if CLI args say not to
 		#
@@ -1030,7 +1024,7 @@ sub Process_TCP_Sessions {
 				next;
 			}
 		}
-		
+
 		#
 		# --- Fetch RawBoth ---
 		#
@@ -1053,6 +1047,8 @@ sub Process_TCP_Sessions {
 		printf "%6s  %-45s  %s\n",$numtext,$session_id,$service_name
 		 unless $Arg{quiet};
 		
+		print STDOUT "FAKE0";
+		$response = <STDIN> // next ;
 		
 		#
 		# --- Save Info File to Disk ---
@@ -1062,11 +1058,11 @@ sub Process_TCP_Sessions {
 			$firsttime = localtime($TCP{id}{$session_id}{StartTime});
 			$lasttime = localtime($TCP{id}{$session_id}{EndTime});
 			$duration = ($TCP{id}{$session_id}{EndTime} -
-			 $TCP{id}{$session_id}{StartTime});
+				$TCP{id}{$session_id}{StartTime});
 			$duration = sprintf("%.0f",$duration);
 			&logger("\$duration: $duration");
 			if ($TCP{id}{$session_id}{Partial}) { $partial = "yes"; }
-			 else { $partial = "no"; }
+				else { $partial = "no"; }
 			
 			### Build output text
 			$outtext = "$numtext===$session_id===$service===" .
@@ -1084,11 +1080,13 @@ sub Process_TCP_Sessions {
 			
 			### Write info file
 			open (OUT,">$filename") ||
-			 die "ERROR11: creating $filename $!\n";
+				die "ERROR11: creating $filename $!\n";
 			print OUT $outtext;
 			close OUT;
 		}
 		
+		print STDOUT "FAKE1";
+		$response = <STDIN> // next ;
 		
 		#
 		# --- Save Index data to Memory ---
@@ -1104,6 +1102,9 @@ sub Process_TCP_Sessions {
 		
 		### Generate session strings
 		($id_text,$id_html) = &Generate_TCP_IDs($session_id);
+		
+		print STDOUT "FAKE2";
+		$response = <STDIN> // next ;
 		
 		#
 		# --- Save Raw Sessions to Disk ---
@@ -1121,6 +1122,9 @@ sub Process_TCP_Sessions {
 			print OUT $rawboth;
 			close OUT;
 			
+		print STDOUT "FAKE3";
+		$response = <STDIN> // next ;
+		
 			#
 			#  Save ".raw1" file, server->client 1-way data assembled.
 			#
@@ -1132,6 +1136,9 @@ sub Process_TCP_Sessions {
 			close OUT;
 			
 		}
+			
+		print STDOUT "FAKE4";
+		$response = <STDIN> // next ;
 		
 		next unless $Arg{output_apps};
 		
@@ -1146,6 +1153,9 @@ sub Process_TCP_Sessions {
 				&Save_HTTP_Files($session_id,$number,$service_name);
 				&Process_HTTP($session_id,$number);
 		}
+			
+		print STDOUT "FAKE5";
+		$response = <STDIN> // next ;
 	}
 }
 
