@@ -980,10 +980,8 @@ sub Process_TCP_Sessions {
 		$number = $Index{Sort_Lookup}{"TCP:$session_id"};
 		# Would print in Arg{the_dir}, so $my_log adapted.
 		#&logger("\$my_log: $my_log");
-		&logger("\$session_id;");
-		&logger("$session_id");
-		&logger("\$number;");
-		&logger("$number");
+		&logger("\$session_id: $session_id");
+		&logger("\$number: $number");
 		
 		#
 		#  Determine the service - usually by the lowest numbered port, eg,
@@ -1045,7 +1043,7 @@ sub Process_TCP_Sessions {
 		### Print status line
 		$numtext = sprintf("%04d",$number);
 		printf "%6s  %-45s  %s\n",$numtext,$session_id,$service_name
-		 unless $Arg{quiet};
+			unless $Arg{quiet};
 		
 		print STDOUT "FAKE0";
 		$response = <STDIN> // next ;
@@ -1085,7 +1083,7 @@ sub Process_TCP_Sessions {
 			close OUT;
 		}
 		
-		print STDOUT "FAKE1";
+		print STDOUT "FAKE1";	# by this point created: session_NNNN.info
 		$response = <STDIN> // next ;
 		
 		#
@@ -1122,7 +1120,7 @@ sub Process_TCP_Sessions {
 			print OUT $rawboth;
 			close OUT;
 			
-		print STDOUT "FAKE3";
+		print STDOUT "FAKE3";	# by this point created: session_NNNN_PORT.raw
 		$response = <STDIN> // next ;
 		
 			#
@@ -1137,7 +1135,7 @@ sub Process_TCP_Sessions {
 			
 		}
 			
-		print STDOUT "FAKE4";
+		print STDOUT "FAKE4";	# by this point created: session_NNNN_PORT.raw1
 		$response = <STDIN> // next ;
 		
 		next unless $Arg{output_apps};
@@ -1237,6 +1235,10 @@ sub Process_HTTP {
 			&logger("\$cookie: $cookie");
 			&logger("\$setcookie: $setcookie");
 			
+		print STDOUT "FAKE6";	# by this point created: session_NNNN_part_NN.data
+								# by this point created: session_NNNN_part_NN.html
+		$response = <STDIN> // next ;
+			
 			### Get the site string
 			($site) = $request =~ /^GET (\S*)\s/;
 			if ($site =~ m:^/:) {
@@ -1283,19 +1285,10 @@ sub Process_HTTP {
 		$type = "-" if $type eq "";
 		$size = length($TCP{id}{$session_id}) if $size eq "";
 		$result = $Result_Names{$status} || "TCP_HIT";
-		
-		### Store the log entry
-		$HTTPlog{time}{$time} =
-			Print_Log_Line($number,$time,$duration,
-				   $src,$dest,$result,$status,$size,
-				   "POST",$site,"-","NONE","","-",$type);
-		$HTTPtxtlog{time}{$time} =
-			Print_TxtLog_Line($number,$time,
-				$referer,$cookie,$setcookie,
-				"POST",$site);
-		$HTTPlog{notempty} = 1;
-		
 		}
+			
+		print STDOUT "FAKE7";
+		$response = <STDIN> // next ;
 		
 		#
 		# --- Do GETPOST Processing ---
@@ -1320,7 +1313,13 @@ sub Process_HTTP {
 		($junk,$post,$junk1) = split(/\n\n|\r\n\r\n/,$request);
 		
 		}
+			
+		print STDOUT "FAKE8";
+		$response = <STDIN> // next ;
 	}
+			
+		print STDOUT "FAKE9";
+		$response = <STDIN> // next ;
 }
 
 
@@ -1483,6 +1482,7 @@ sub Save_HTTP_Files {
 	my $number = shift;
 	my $service_name = shift;
 	my $numtext = sprintf("%04d",$number);
+	&logger("\$number: $number, \$numtext: $numtext");
 	
 	### Full - Input
 	$http_session = &TCP_Follow_RawA($session_id);
@@ -1610,17 +1610,6 @@ sub Save_HTTP_Files {
 		
 		### Part - Global Vars
 		my $length = length($http_data);
-		$Index{HTML}[$number] .= "<li><a href=\"$filename\">$filename" .
-			"</a> $length bytes</li>\n";
-		$Index{Text}[$number] .= sprintf("%-4s %-45s %-10s %8s bytes\n",
-			'"' , "   $filename","",$length);
-		if (&Is_Image($http_type) or
-			&Is_Image($file_extension)) { # JL: Also check file ext.
-			$Image{HTML}[$number]{links} .= "<img src=\"$filename\"> ";
-			$Image{notempty} = 1;
-			# JL: Remember this part as image.
-			$ExtImage{HTML}[$number]{parts}[$partnum] = 1;
-		}
 	}
 }
 
