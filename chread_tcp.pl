@@ -87,7 +87,7 @@ use Getopt::Long;
 use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
 use IO::Uncompress::Inflate qw(inflate $InflateError) ;
 use IO::Uncompress::RawInflate qw(rawinflate $RawInflateError) ;
-# needed for logger/binner/binner_d unique filename creation
+# needed for logger/binner unique filename creation
 use Time::HiRes qw( clock_gettime usleep TIMER_ABSTIME );
 
 #
@@ -180,8 +180,8 @@ sub Open_Input_File {
 	my $infile = shift;
 	my ($length,$size);
 	
-	# logger, binner and binner_d are placed here because their naming is based
-	# on $infile
+	# logger and binner are placed after this function because their naming is
+	# based on $infile, and this is non-expert preparation of context for them
 	my $s;
 	$s = clock_gettime();
 	$s =~ /(\d*)\.\d*/ ;
@@ -191,99 +191,24 @@ sub Open_Input_File {
 	$my_log = "" ;
 	$my_log_dir = "" ;
 	$my_bin = "" ;
-	$my_bin_d = "" ;
 	$my_log .= "$infile-" ;
 	$my_log =~ s/\.pcap// ;			# Needs to be adapted for traces w/
-										# other extensions
+									# other extensions
 	$my_log .= $s ;
 	$my_log_dir .= $my_log ;
 	$my_log_dir .= ".d" ;
 	mkdir $my_log_dir ;
 	$my_log_dir .= "/" ;
-	#print $my_log;
-	sub logger {
-		( $my_log_dir ) ? $my_log = $my_log_dir : ( $my_log =~ s/($my_log_dir)/..\/\1/ ) ;
-		$my_log =~ s/\.d\/// ;
-		$my_log .= ".log" ;
-		$s = clock_gettime();
-		$s =~ /\d*\.(\d*)/ ;
-		$usec=$1;
-		my $logmessage = shift;
-		open my $logfile, ">>", "$my_log" or die "Could not open $my_log: $!";
-		say $logfile $logmessage;
-	}
-	sub binner {	# logger above was initially from perlintro, and binner was
-					# copy-paste-n-modify on it, with a pun ending in -er.
-					# From version v0.10, binner and binner_d work to usec level
-					# filenaming, with inclusion of tcpdump timestamps.
-					# From version v0.11 all their snippets/data is placed in a
-					# dir named as the logger log, just s/.log/.d/ .
-		( $my_log_dir ) ? $my_bin = $my_log_dir : ( $my_bin =~ s/($my_log_dir)/..\/\1/ ) ;
-		$my_log_dir =~ s/\.log/.d\// ;
-		$s = clock_gettime();
-		$s =~ /\d*\.(\d*)/ ;
-		$usec=$1;
-		$my_bin .= $usec;
-		if ( $tcpdump_seconds ) {
-			$my_bin .= ".";
-			$my_bin .= $tcpdump_seconds ; 
-		} else {
-			if ( $packet ) {
-				$my_bin .= ".";
-				$my_bin .= $packet ; 
-			}
-		} 
-		if ( $tcpdump_msecs ) {
-			$my_bin .= ".";
-			$my_bin .= $tcpdump_msecs ;
-		} else {
-			#print "no \$tcpdump_seconds yet/or undefined (no harm)\n";
-		} 
-		$my_bin .= ".bin";
-		my $binmessage = shift;
-		open my $binfile, ">>", "$my_bin" or
-			$my_bin =~ s/(\S*)/\.\.\/$1/ ;
-			open my $binfile, ">>", "$my_bin"
-			or die "Could not open $my_bin: $!";
-		print $binfile $binmessage;
-		&logger("created $my_bin");
-	}
-	sub binner_d {	# see note on binner above, _d is for data, put in data
-					# that will make for streams/sessions once cat'ed
-					# together
-		( $my_log_dir ) ? $my_bin_d = $my_log_dir : ( $my_bin_d =~ s/($my_log_dir)/..\/\1/ ) ;
-		$s = clock_gettime();
-		$s =~ /\d*\.(\d*)/ ;
-		$usec=$1;
-		$my_bin_d .= $usec;
-		if ( $tcpdump_seconds ) {
-			$my_bin_d .= ".";
-			$my_bin_d .= $tcpdump_seconds ; 
-		} else {
-			if ( $packet ) {
-				$my_bin_d .= ".";
-				$my_bin_d .= $packet ; 
-			}
-		} 
-		if ( $tcpdump_msecs ) {
-			$my_bin_d .= ".";
-			$my_bin_d .= $tcpdump_msecs ;
-		} else {
-			#print "no \$tcpdump_seconds yet/or undefined (no harm)\n";
-		} 
-		$my_bin_d .= "_d";
-		$my_bin_d .= ".bin";
-		my $binmessage = shift;
-		open my $binfile_d, ">>", "$my_bin_d" or die "Could not open $my_bin_d: $!";
-		print $binfile_d $binmessage;
-		&logger("created $my_bin_d");
-	}
+	$my_log .= ".log" ;
+	#print $my_log, "\n";
+
 	&logger("This log ($my_log) created for printing %IP and %TCP");
 	&logger("\tfor own understanding of the core functionality of this script,");
 	&logger("\tfor text, with sub logger.");
 	&logger("There can also be dir $my_log_dir");
-	&logger("\tfor binary snippets/data, with sub(s) binner(,_d)");
+	&logger("\tfor binary snippets/data, with sub binner");
 	&logger("==================================================");
+
 	
 	print "Opening, $infile\n\n" unless $Arg{quiet};
 	
@@ -363,6 +288,63 @@ sub Open_Input_File {
 	$Arg{infile} = $infile;
 }
 
+sub logger {
+	if ( $my_log_dir =~ /\.\.\// ) {
+		print "\$my_log_dir: $my_log_dir \n";
+		$my_log_dir =~ /\.\.\/(\S*)/ ;
+		$my_log = $1;
+		print "\$my_log_dir: $my_log_dir \n";
+		print "\$my_log: $my_log \n";
+	}
+	my $up_chdir = "..";
+	( chdir $up_chdir ) unless ( stat($my_log_dir) );
+	$my_log = $my_log_dir;
+	$my_log =~ s/\.d\/// ;
+	$my_log .= ".log" ;
+	$s = clock_gettime();
+	$s =~ /\d*\.(\d*)/ ;
+	$usec=$1;
+	my $logmessage = shift;
+	open my $logfile, ">>", "$my_log" or die "Could not open $my_log: $!";
+	say $logfile $logmessage;
+}
+
+sub binner {	# logger above was initially from perlintro, and binner was
+				# copy-paste-n-modify on it, with a pun ending in -er.
+				# From version v0.10, binner works to usec level
+				# filenaming, with inclusion of tcpdump timestamps.
+				# From version v0.11 all their snippets/data is placed in a
+				# dir named as the logger log, just s/.log/.d/ .
+	( $my_log_dir ) ? $my_bin = $my_log_dir : ( $my_bin =~ s/($my_log_dir)/..\/\1/ ) ;
+	#$my_log_dir =~ s/\.log/.d\// ;
+	$s = clock_gettime();
+	$s =~ /\d*\.(\d*)/ ;
+	$usec=$1;
+	$my_bin .= $usec;
+	if ( $tcpdump_seconds ) {
+		$my_bin .= ".";
+		$my_bin .= $tcpdump_seconds ; 
+	} else {
+		if ( $packet ) {
+			$my_bin .= ".";
+			$my_bin .= $packet ; 
+		}
+	} 
+	if ( $tcpdump_msecs ) {
+		$my_bin .= ".";
+		$my_bin .= $tcpdump_msecs ;
+	} else {
+		#print "no \$tcpdump_seconds yet/or undefined (no harm)\n";
+	} 
+	$my_bin .= ".bin";
+	my $binmessage = shift;
+	open my $binfile, ">>", "$my_bin" or
+		$my_bin =~ s/(\S*)/\.\.\/$1/ ;
+		open my $binfile, ">>", "$my_bin"
+		or die "Could not open $my_bin: $!";
+	print $binfile $binmessage;
+	&logger("created $my_bin");
+}
 
 
 # Read_Input_File - this subroutine loops through the records in the packet
@@ -453,7 +435,7 @@ sub Read_Input_File {
 			&logger("the_unpack('nnnH12nH4a*',\$packet_data");
 			&logger("$lptype,$lladdr_type,$lladdr_len,$ether_src,$ll_dummy,$ether_type");
 			&logger("\$ether_data:");
-			&binner_d("$ether_data");
+			&binner("$ether_data");
 			&logger("--------------------------------------------------");
 			if ($ether_type ne "0800") {
 			next;
@@ -537,7 +519,7 @@ sub Read_Input_File {
 			&logger("$ip_dlength = $ip_length - $ip_options_num - 20");
 			&logger("(\$ip_data,\$trailers) = the_unpack (a\${ip_dlength}a*,\$ip_data);");
 			&logger("\$ip_data:");
-			&binner_d("$ip_data");
+			&binner("$ip_data");
 			&logger("--------------------------------------------------");
 			
 			### Build text strings of IP addresses
@@ -699,7 +681,7 @@ sub Read_Input_File {
 				&logger("\$time => \$IP{time}{\$time}{protocol}");
 				&logger("$time => $IP{time}{$time}{protocol}");
 				&logger("\$time => \$IP{time}{\$time}{frag}{\$ip_frag}");
-				&binner_d("$IP{time}{$time}{frag}{$ip_frag}");
+				&binner("$IP{time}{$time}{frag}{$ip_frag}");
 				&logger("--------------------------------------------------");
 			}
 			$IP_time_hash_printed = 1;
@@ -920,6 +902,8 @@ sub Process_TCP_Packet {
 		#
 		$TCP{id}{$session_id}{time}{$time}{data} .= $tcp_data;
 		$TCP{id}{$session_id}{time}{$time}{dir} .= "A";
+		&logger("A dir Process_TCP_Packet \$tcp_data:");
+		&binner("$tcp_data");
 		
 		#
 		#
@@ -945,6 +929,8 @@ sub Process_TCP_Packet {
 		#
 		$TCP{id}{$session_id}{time}{$time}{data} .= $tcp_data;
 		$TCP{id}{$session_id}{time}{$time}{dir} .= "B";
+		&logger("B dir Process_TCP_Packet \$tcp_data:");
+		&binner("$tcp_data");
 		
 		#
 		#
@@ -990,6 +976,16 @@ sub Process_TCP_Sessions {
 	#
 	foreach $session_id (keys %{$TCP{id}}) {
 		$number = $Index{Sort_Lookup}{"TCP:$session_id"};
+		# Prints in Arg{the_dir}.
+		&logger("\$my_log_dir;");
+		&logger("$my_log_dir;");
+		&logger("\$my_log;");
+		&logger("$my_log;");
+		&logger("\$session_id;");
+		&logger("$session_id");
+		&logger("\$number;");
+		&logger("$number");
+		#exit(0);
 		
 		#
 		#  Determine the service - usually by the lowest numbered port, eg,
@@ -999,11 +995,23 @@ sub Process_TCP_Sessions {
 		$ip_dest = $TCP{id}{$session_id}{dest};
 		$tcp_src_port = $TCP{id}{$session_id}{src_port};
 		$tcp_dest_port = $TCP{id}{$session_id}{dest_port};
+		# Prints in Arg{the_dir}.
+		&logger("\$ip_src = \$TCP{id}{$session_id}{src};");
+		&logger("$ip_src = $TCP{id}{$session_id}{src};");
+		&logger("\$ip_dest = \$TCP{id}{$session_id}{dest};");
+		&logger("$ip_dest = $TCP{id}{$session_id}{dest};");
+		&logger("\$tcp_src_port = \$TCP{id}{$session_id}{src_port};");
+		&logger("$tcp_src_port = $TCP{id}{$session_id}{src_port};");
+		&logger("\$tcp_dest_port = \$TCP{id}{$session_id}{dest_port};");
+		&logger("$tcp_dest_port = $TCP{id}{$session_id}{dest_port};");
 		($service,$client) = &Pick_Service_Port("TCP",$session_id,
 			$tcp_src_port,$tcp_dest_port);
 		
 		### Fetch text name for this port
 		$service_name = $Services_TCP{$service} || $service || "0";
+		# Prints in Arg{the_dir}.
+		&logger("\$service_name;");
+		&logger("$service_name");
 		
 		#
 		#  Don't actually save any files if CLI args say not to
@@ -1055,6 +1063,9 @@ sub Process_TCP_Sessions {
 			$duration = ($TCP{id}{$session_id}{EndTime} -
 			 $TCP{id}{$session_id}{StartTime});
 			$duration = sprintf("%.0f",$duration);
+			# Prints in Arg{the_dir}.
+			&logger("\$duration;");
+			&logger("$duration");
 			if ($TCP{id}{$session_id}{Partial}) { $partial = "yes"; }
 			 else { $partial = "no"; }
 			
@@ -1089,6 +1100,11 @@ sub Process_TCP_Sessions {
 		$duration = ($TCP{id}{$session_id}{EndTime} -
 		 $TCP{id}{$session_id}{StartTime});
 		$duration = sprintf("%.0f",$duration);
+		# Prints in Arg{the_dir}.
+		&logger("\$starttime;");
+		&logger("$starttime");
+		&logger("\$duration;");
+		&logger("$duration");
 		
 		### Generate session strings
 		($id_text,$id_html) = &Generate_TCP_IDs($session_id);
@@ -2128,7 +2144,7 @@ sub Read_Tcpdump_Record {
 	&logger("### \$packet $packet ###");
 	$length = read(INFILE,$header_rec,($integerSize * 2 + 8));
 	&logger("\$header_rec:");
-	&binner_d("$header_rec");
+	&binner("$header_rec");
 	
 	### Quit main loop if at end of file
 	last if $length < 16;
@@ -2152,14 +2168,14 @@ sub Read_Tcpdump_Record {
 		&logger("\$tcpdump_seconds,\$tcpdump_msecs,\$tcpdump_length,\$tcpdump_length_orig = unpack('VVVV',\$header_rec);");
 		&logger("$tcpdump_seconds,$tcpdump_msecs,$tcpdump_length,$tcpdump_length_orig,$my_header_rec;");
 		# The created bin snippet/data.
-		&binner_d("$header_rec");
+		&binner("$header_rec");
 		# Can be read too.
 		#open my $binfile, "<", "$my_bin_d" or die "Could not open $my_bin_d: $!";
 	}
 	$length = read(INFILE,$tcpdump_data,$tcpdump_length);
 	# See note above why this line.
 	&logger("\$tcpdump_data (later: \$packet_data, same as \$header_rec above, always?):");
-	&binner_d("$tcpdump_data");
+	&binner("$tcpdump_data");
 	&logger("--------------------------------------------------");
 	$tcpdump_drops = $tcpdump_length_orig - $tcpdump_length;
 	# Uncomment to study just the initial loop:
