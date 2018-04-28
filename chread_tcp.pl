@@ -220,8 +220,8 @@ sub Open_Input_File {
 	#  Fetch header
 	#
 	$length = read(INFILE,$header,8);
-	&logger("\$length = read(INFILE,\$header,8");
-	&binner("$header");
+	#&logger(")\$length = read(INFILE,\$header,8");
+	#&binner()"$header");
 	
 	### Print status
 	print "Reading file contents,\n" unless $Arg{quiet};
@@ -231,8 +231,8 @@ sub Open_Input_File {
 	#  Try to determine if this is a tcpdump file
 	#
 	($ident) = unpack('a8',$header);
-	&logger("\$ident = the_unpack('a8',\$header)");
-	&binner("$ident");
+	#&logger(")\$ident = the_unpack('a8',\$header)");
+	#&binner()"$ident");
 	
 	if ($ident =~ /^\241\262\303\324|^\324\303\262\241/ ||
 		$ident =~ /^\241\262\315\064|^\064\315\262\241/) {
@@ -250,7 +250,7 @@ sub Open_Input_File {
 		} else {
 			# reread in little-endian
 			($ident,$major,$minor) = unpack('a4vv',$header);
-			&logger("\$STYLE: $STYLE, \$major: $major, \$minor: $minor");
+			#&logger(")\$STYLE: $STYLE, \$major: $major, \$minor: $minor");
 		}
 		
 		#
@@ -269,9 +269,9 @@ sub Open_Input_File {
 		#  Nudge the filehandle past the rest of the header...
 		#
 		$length = read(INFILE,$header_rest,16);
-		&logger("\$length = read(INFILE,\$header_rest,16");
-		&logger("$length = read(INFILE,\$header_rest,16)");
-		&binner("$header_rest");
+		#&logger(")\$length = read(INFILE,\$header_rest,16");
+		#&logger(")$length = read(INFILE,\$header_rest,16)");
+		#&binner()"$header_rest");
 	
 	} else {
 		#
@@ -374,8 +374,8 @@ sub Read_Input_File {
 		$packet_time = $tcpdump_seconds;
 		$packet_timefull = $tcpdump_seconds + $tcpdump_msecs/1000000;
 		$record_size = $tcpdump_length + ($integerSize * 2 + 8);
-		&logger("\$record_size = \$tcpdump_length + (\$integerSize * 2 + 8);");
-		&logger("$record_size = $tcpdump_length + ($integerSize * 2 + 8);");
+		#&logger(")\$record_size = \$tcpdump_length + (\$integerSize * 2 + 8);");
+		#&logger(")$record_size = $tcpdump_length + ($integerSize * 2 + 8);");
 		
 		### Print status summary
 		unless ($Arg{quiet}) {
@@ -404,8 +404,8 @@ sub Read_Input_File {
 		### Unpack ether data
 		($ether_dest,$ether_src,$ether_type,$ether_data) =
 			unpack('H12H12H4a*',$packet_data) unless $decoded;
-		&logger("\$ether_dest,\$ether_src,\$ether_type = the_unpack('H12H12H4a*',\$packet_data)");
-		&logger("$ether_dest,$ether_src,$ether_type ...");
+		#&logger(")\$ether_dest,\$ether_src,\$ether_type = the_unpack('H12H12H4a*',\$packet_data)");
+		#&logger(")$ether_dest,$ether_src,$ether_type ...");
 		
 		#
 		#  Process extended Ethernet types (PPPoE; wireless and VLAN removed)
@@ -433,12 +433,12 @@ sub Read_Input_File {
 			($lptype,$lladdr_type,$lladdr_len,
 			$ether_src,$ll_dummy,$ether_type,$ether_data) =
 			unpack('nnnH12nH4a*',$packet_data) unless $decoded;
-			&logger("\$lptype,\$lladdr_type,\$lladdr_len,\$ether_src,\$ll_dummy,\$ether_type");
-			&logger("the_unpack('nnnH12nH4a*',\$packet_data");
-			&logger("$lptype,$lladdr_type,$lladdr_len,$ether_src,$ll_dummy,$ether_type");
-			&logger("\$ether_data:");
-			&binner("$ether_data");
-			&logger("--------------------------------------------------");
+			#&logger(")\$lptype,\$lladdr_type,\$lladdr_len,\$ether_src,\$ll_dummy,\$ether_type");
+			#&logger(")the_unpack('nnnH12nH4a*',\$packet_data");
+			#&logger(")$lptype,$lladdr_type,$lladdr_len,$ether_src,$ll_dummy,$ether_type");
+			#&logger(")\$ether_data:");
+			#&binner()"$ether_data");
+			#&logger(")--------------------------------------------------");
 			if ($ether_type ne "0800") {
 			next;
 			}
@@ -451,14 +451,14 @@ sub Read_Input_File {
 		
 		### Check for IP ver
 		($ip_verNihl,$ip_rest) = unpack('Ca*',$ether_data);	# ihl: ip header length
-		&logger("\$ip_verNihl: $ip_verNihl");
+		#&logger(")\$ip_verNihl: $ip_verNihl");
 		$ip_ver = $ip_verNihl & 240;
-		&logger("$ip_verNihl & 240");
-		&logger("\$ip_ver: $ip_ver");
-		&logger("\$ip_ver = \$ip_ver shift 4:");
-		&logger("$ip_ver = $ip_ver >> 4");
+		#&logger(")$ip_verNihl & 240");
+		#&logger(")\$ip_ver: $ip_ver");
+		#&logger(")\$ip_ver = \$ip_ver shift 4:");
+		#&logger(")$ip_ver = $ip_ver >> 4");
 		$ip_ver = $ip_ver >> 4;
-		&logger("\$ip_ver: $ip_ver");
+		#&logger(")\$ip_ver: $ip_ver");
 		
 		if ($ip_ver == 4) {
 		
@@ -472,43 +472,43 @@ sub Read_Input_File {
 				$ip_ttl,$ip_protocol,$ip_checksum,@ip_src[0..3],
 				@ip_dest[0..3],$ip_data) = unpack('CCnnnCCa2CCCCCCCCa*',
 				$ether_data);
-			&logger("\$ip_verNihl,\$ip_tos,\$ip_length,\$ip_ident,\$ip_flagNfrag,\$ip_ttl,");
-			&logger("\$ip_protocol,\$my_ip_checksum,\ at ip_src[0..3],at ip_dest[0..3],\$ip_data");
-			&logger("= the_unpack(CCnnnCCa2CCCCCCCCa*,\$ether_data");
+			#&logger(")\$ip_verNihl,\$ip_tos,\$ip_length,\$ip_ident,\$ip_flagNfrag,\$ip_ttl,");
+			#&logger(")\$ip_protocol,\$my_ip_checksum,\ at ip_src[0..3],at ip_dest[0..3],\$ip_data");
+			#&logger(")= the_unpack(CCnnnCCa2CCCCCCCCa*,\$ether_data");
 			my $my_ip_checksum = unpack('H*', $ip_checksum);
-			&logger("$ip_verNihl,$ip_tos,$ip_length,$ip_ident,$ip_flagNfrag,$ip_ttl,");
-			&logger("$ip_protocol,$my_ip_checksum,@ip_src[0..3],@ip_dest[0..3],\$ip_data");
+			#&logger(")$ip_verNihl,$ip_tos,$ip_length,$ip_ident,$ip_flagNfrag,$ip_ttl,");
+			#&logger(")$ip_protocol,$my_ip_checksum,@ip_src[0..3],@ip_dest[0..3],\$ip_data");
 			
 			### Get frag and flag data
-			&logger("\$ip_flagNfrag: $ip_flagNfrag");
-			&logger("\$ip_frag = \$ip_flagNfrag and 8191");
+			#&logger(")\$ip_flagNfrag: $ip_flagNfrag");
+			#&logger(")\$ip_frag = \$ip_flagNfrag and 8191");
 			$ip_frag = $ip_flagNfrag & 8191;
-			&logger("$ip_flagNfrag & 8191");
-			&logger("\$ip_frag: $ip_frag");
-			&logger("\$ip_flag = \$ip_flagNfrag and 57344");
-			&logger("$ip_flagNfrag & 57344");
+			#&logger(")$ip_flagNfrag & 8191");
+			#&logger(")\$ip_frag: $ip_frag");
+			#&logger(")\$ip_flag = \$ip_flagNfrag and 57344");
+			#&logger(")$ip_flagNfrag & 57344");
 			$ip_flag = $ip_flagNfrag & 57344;
-			&logger("\$ip_flag: $ip_flag");
-			&logger("\$ip_flag = \$ip_flag shift 13");
+			#&logger(")\$ip_flag: $ip_flag");
+			#&logger(")\$ip_flag = \$ip_flag shift 13");
 			$ip_flag = $ip_flag >> 13;
-			&logger("\$ip_flag: $ip_flag");
-			&logger("\$ip_MF = \$ip_flag and 1");
-			&logger("$ip_flag & 1");
+			#&logger(")\$ip_flag: $ip_flag");
+			#&logger(")\$ip_MF = \$ip_flag and 1");
+			#&logger(")$ip_flag & 1");
 			$ip_MF = $ip_flag & 1;					# MF: more fragments
-			&logger("\$ip_MF: $ip_MF");
+			#&logger(")\$ip_MF: $ip_MF");
 			### Strip off IP options if present
-			&logger("\$ip_ihl = \$ip_verNihl: and 15");
-			&logger("$ip_verNihl & 15");
+			#&logger(")\$ip_ihl = \$ip_verNihl: and 15");
+			#&logger(")$ip_verNihl & 15");
 			$ip_ihl = $ip_verNihl & 15;
-			&logger("\$ip_ihl = $ip_ihl");
-			&logger("\$ip_ihl = \$ip_ihl left shift 2");
-			&logger("$ip_ihl << 2");
+			#&logger(")\$ip_ihl = $ip_ihl");
+			#&logger(")\$ip_ihl = \$ip_ihl left shift 2");
+			#&logger(")$ip_ihl << 2");
 			$ip_ihl = $ip_ihl << 2;
-			&logger("\$ip_ihl = $ip_ihl");
-			&logger("\$ip_options_num = \$ip_ihl - 20");
-			&logger("$ip_ihl - 20");
+			#&logger(")\$ip_ihl = $ip_ihl");
+			#&logger(")\$ip_options_num = \$ip_ihl - 20");
+			#&logger(")$ip_ihl - 20");
 			$ip_options_num = $ip_ihl - 20;
-			&logger("\$ip_options_num = $ip_options_num");
+			#&logger(")\$ip_options_num = $ip_options_num");
 			if ($ip_options_num > 0) {
 				($ip_options,$ip_data) =
 				unpack("a${ip_options_num}a*",$ip_data);
@@ -517,17 +517,17 @@ sub Read_Input_File {
 			### Strip off Ethernet trailers
 			$ip_dlength = $ip_length - $ip_options_num - 20;
 			($ip_data,$trailers) = unpack("a${ip_dlength}a*",$ip_data);
-			&logger("\$ip_dlength = \$ip_length - \$ip_options_num - 20");
-			&logger("$ip_dlength = $ip_length - $ip_options_num - 20");
-			&logger("(\$ip_data,\$trailers) = the_unpack (a\${ip_dlength}a*,\$ip_data);");
-			&logger("\$ip_data:");
-			&binner("$ip_data");
-			&logger("--------------------------------------------------");
+			#&logger(")\$ip_dlength = \$ip_length - \$ip_options_num - 20");
+			#&logger(")$ip_dlength = $ip_length - $ip_options_num - 20");
+			#&logger(")(\$ip_data,\$trailers) = the_unpack (a\${ip_dlength}a*,\$ip_data);");
+			#&logger(")\$ip_data:");
+			#&binner()"$ip_data");
+			#&logger(")--------------------------------------------------");
 			
 			### Build text strings of IP addresses
 			$ip_src = sprintf("%u.%u.%u.%u",@ip_src);
 			$ip_dest = sprintf("%u.%u.%u.%u",@ip_dest);
-			&logger("\$ip_src,\$ip_dest: $ip_src,$ip_dest");
+			#&logger(")\$ip_src,\$ip_dest: $ip_src,$ip_dest");
 			
 		} elsif ($ip_ver == 6) {
 			
@@ -578,7 +578,7 @@ sub Read_Input_File {
 		
 		### Generate unique IP id (not just the ident)
 		$ip_id = &Generate_IP_ID($ip_src,$ip_dest,$ip_ident);
-		&logger("\$ip_id: $ip_id");
+		#&logger(")\$ip_id: $ip_id");
 		#
 		#  Store IP data in %IP so we can do frag reassembly next
 		#
@@ -596,19 +596,19 @@ sub Read_Input_File {
 			#
 			unless (($ip_MF == 0) && ($ip_frag == 0)) {
 				$IP{id}{$ip_id}{StartTime} = $packet_timefull;
-				#&logger("\$IP{id}{\$ip_id}{StartTime} = \$packet_timefull: \
+				##&logger(")\$IP{id}{\$ip_id}{StartTime} = \$packet_timefull: \
 				#	$IP{id}{$ip_id}{StartTime} = $packet_timefull");
 			}
 			if (($ip_MF == 1) || ($ip_frag > 0)) {
 				$IP{time}{$packet_timefull}{fragged} = 1;
 			}
-			&logger("\$IP{id}{\$ip_id}{StartTime} = \$packet_timefull: \
-				$IP{id}{$ip_id}{StartTime} = $packet_timefull");
-			&logger("\$IP{id}{$ip_id}{StartTime}: $IP{id}{$ip_id}{StartTime}");
+			#&logger(")\$IP{id}{\$ip_id}{StartTime} = \$packet_timefull: \
+			#	$IP{id}{$ip_id}{StartTime} = $packet_timefull");
+			#&logger(")\$IP{id}{$ip_id}{StartTime}: $IP{id}{$ip_id}{StartTime}");
 		} else {
 			$start_time = $IP{id}{$ip_id}{StartTime};
-			&logger("\$start_time = \$IP{id}{\$ip_id}{StartTime}: \
-				$start_time = $IP{id}{$ip_id}{StartTime}");
+			#&logger(")\$start_time = \$IP{id}{\$ip_id}{StartTime}: \
+			#	$start_time = $IP{id}{$ip_id}{StartTime}");
 			$IP{time}{$start_time}{frag}{$ip_frag} = $ip_data;
 			if ($tcpdump_drops) {
 				$IP{time}{$packet_timefull}{drops} = 1;
@@ -673,18 +673,18 @@ sub Read_Input_File {
 		# above. Uncomment for testing/learning/figuring out.
 		if (! defined $IP_time_hash_printed ) {
 			for my $time ( sort { $a <=> $b } ( keys(%{$IP{time}})) ) {
-				&logger("\$time: $time");
-				&logger("\$time => \$IP{time}{\$time}{ver}");
-				&logger("$time => $IP{time}{$time}{ver}");
-				&logger("\$time => \$IP{time}{\$time}{src}");
-				&logger("$time => $IP{time}{$time}{src}");
-				&logger("\$time => \$IP{time}{\$time}{dest}");
-				&logger("$time => $IP{time}{$time}{dest}");
-				&logger("\$time => \$IP{time}{\$time}{protocol}");
-				&logger("$time => $IP{time}{$time}{protocol}");
-				&logger("\$time => \$IP{time}{\$time}{frag}{\$ip_frag}");
-				&binner("$IP{time}{$time}{frag}{$ip_frag}");
-				&logger("--------------------------------------------------");
+				#&logger(")\$time: $time");
+				#&logger(")\$time => \$IP{time}{\$time}{ver}");
+				#&logger(")$time => $IP{time}{$time}{ver}");
+				#&logger(")\$time => \$IP{time}{\$time}{src}");
+				#&logger(")$time => $IP{time}{$time}{src}");
+				#&logger(")\$time => \$IP{time}{\$time}{dest}");
+				#&logger(")$time => $IP{time}{$time}{dest}");
+				#&logger(")\$time => \$IP{time}{\$time}{protocol}");
+				#&logger(")$time => $IP{time}{$time}{protocol}");
+				#&logger(")\$time => \$IP{time}{\$time}{frag}{\$ip_frag}");
+				#&binner()"$IP{time}{$time}{frag}{$ip_frag}");
+				#&logger(")--------------------------------------------------");
 			}
 			$IP_time_hash_printed = 1;
 		}
@@ -714,12 +714,12 @@ sub Read_Input_File {
 		} else {
 			$ip_data = $IP{time}{$time}{frag}{0};
 			#print "We're at else outside at IP_Frags = sort ... \n\n\n";
-			&logger("\$ip_data = \$IP{time}{\$time}{frag}{0}");
-			&logger("\$ip_data:");
-			&binner("$ip_data");
+			#&logger(")\$ip_data = \$IP{time}{\$time}{frag}{0}");
+			#&logger(")\$ip_data:");
+			#&binner()"$ip_data");
 		}
 		$length = length($ip_data);
-		&logger("\$length = length(\$ip_data): $length");
+		#&logger(")\$length = length(\$ip_data): $length");
 		
 		#
 		# --- TCP ---
@@ -772,28 +772,28 @@ sub Process_TCP_Packet {
 	### Unpack TCP data
 	($tcp_src_port,$tcp_dest_port,$tcp_seq,$tcp_ack,$tcp_offset,$tcp_flags,
 		$tcp_header_rest,$tcp_data) = unpack('nnNNCCa6a*',$ip_data);
-	&logger("\$tcp_src_port,\$tcp_dest_port");
-	&logger("\$tcp_seq,\$tcp_ack,\$tcp_offset,\$tcp_flags");
-	&logger("= the_unpack(nnNNCCa6a*,\$ip_data");
-	&logger("$tcp_src_port,$tcp_dest_port");
-	&logger("$tcp_seq,$tcp_ack,$tcp_offset,$tcp_flags");
-	&logger("\$tcp_header_rest:");
-	&binner("$tcp_header_rest");
-	&logger("\$tcp_data:");
-	&binner("$tcp_data");
-	&logger("--------------------------------------------------");
+	#&logger(")\$tcp_src_port,\$tcp_dest_port");
+	#&logger(")\$tcp_seq,\$tcp_ack,\$tcp_offset,\$tcp_flags");
+	#&logger(")= the_unpack(nnNNCCa6a*,\$ip_data");
+	#&logger(")$tcp_src_port,$tcp_dest_port");
+	#&logger(")$tcp_seq,$tcp_ack,$tcp_offset,$tcp_flags");
+	#&logger(")\$tcp_header_rest:");
+	#&binner()"$tcp_header_rest");
+	#&logger(")\$tcp_data:");
+	#&binner()"$tcp_data");
+	#&logger(")--------------------------------------------------");
 	
 	
 	### Strip off TCP options, if present
 	$tcp_offset = $tcp_offset >> 4;		# chuck out reserved bits
-	&logger("\$tcp_offset = \$tcp_offset shift 4");
-	&logger("\$tcp_offset: $tcp_offset");
+	#&logger(")\$tcp_offset = \$tcp_offset shift 4");
+	#&logger(")\$tcp_offset: $tcp_offset");
 	$tcp_offset = $tcp_offset << 2;		# now times by 4
-	&logger("\$tcp_offset = \$tcp_offset shift left 2");
-	&logger("\$tcp_offset: $tcp_offset");
+	#&logger(")\$tcp_offset = \$tcp_offset shift left 2");
+	#&logger(")\$tcp_offset: $tcp_offset");
 	$tcp_options_num = $tcp_offset - 20;
-	&logger("\$tcp_options_num = \$tcp_offset - 20");
-	&logger("\$tcp_options_num = $tcp_options_num");
+	#&logger(")\$tcp_options_num = \$tcp_offset - 20");
+	#&logger(")\$tcp_options_num = $tcp_options_num");
 	if ($tcp_options_num > 0) {
 		($tcp_options,$tcp_data) =
 		 unpack("a${tcp_options_num}a*",$tcp_data);
@@ -804,23 +804,23 @@ sub Process_TCP_Packet {
 	#$tcp_length_data = length($tcp_data);
 	$tcp_fin = $tcp_flags & 1;
 	if ($tcp_fin != 0 ) {
-		&logger("\$tcp_fin = $tcp_flags & 1");
-		&logger("\$tcp_fin = $tcp_fin");
+		#&logger(")\$tcp_fin = $tcp_flags & 1");
+		#&logger(")\$tcp_fin = $tcp_fin");
 		}
 	$tcp_syn = $tcp_flags & 2;
 	if ($tcp_syn != 0 ) {
-		&logger("\$tcp_syn = $tcp_flags & 2");
-		&logger("\$tcp_syn = $tcp_syn");
+		#&logger(")\$tcp_syn = $tcp_flags & 2");
+		#&logger(")\$tcp_syn = $tcp_syn");
 	}
 	$tcp_rst = $tcp_flags & 4;
 	if ($tcp_rst != 0 ) {
-		&logger("\$tcp_rst = $tcp_flags & 4");
-		&logger("\$tcp_rst = $tcp_rst");
+		#&logger(")\$tcp_rst = $tcp_flags & 4");
+		#&logger(")\$tcp_rst = $tcp_rst");
 	}
 	$tcp_ack = $tcp_flags & 16;
 	if ($tcp_ack != 0 ) {
-		&logger("\$tcp_ack = $tcp_flags & 16");
-		&logger("\$tcp_ack = $tcp_ack");
+		#&logger(")\$tcp_ack = $tcp_flags & 16");
+		#&logger(")\$tcp_ack = $tcp_ack");
 	}
 	
 	#
@@ -838,7 +838,7 @@ sub Process_TCP_Packet {
 		($session_id,$from_server) = &Generate_SessionID($ip_src,
 			$tcp_src_port,$ip_dest,$tcp_dest_port,"TCP");
 		# no harm, but number of finds times more lines
-		#&logger("\$session_id: $session_id, \$from_server: $from_server");
+		##&logger(")\$session_id: $session_id, \$from_server: $from_server");
 	}
 	
 	#
@@ -849,13 +849,13 @@ sub Process_TCP_Packet {
 	
 	### Store size
 	$TCP{id}{$session_id}{size} += length($tcp_data);
-	&logger("\$TCP{id}{$session_id}{size}: $TCP{id}{$session_id}{size}");
-	&logger("--------------------------------------------------");
+	#&logger(")\$TCP{id}{$session_id}{size}: $TCP{id}{$session_id}{size}");
+	#&logger(")--------------------------------------------------");
 	
 	### Store the packet timestamp for the first seen packet
 	if (! defined $TCP{id}{$session_id}{StartTime}) {
 		$TCP{id}{$session_id}{StartTime} = $time;
-		&logger("\$TCP{id}{\$session_id}{StartTime}: $TCP{id}{$session_id}{StartTime}");
+		#&logger(")\$TCP{id}{\$session_id}{StartTime}: $TCP{id}{$session_id}{StartTime}");
 		
 		### Store other info once
 		if ($from_server) {
@@ -868,16 +868,16 @@ sub Process_TCP_Packet {
 			$TCP{id}{$session_id}{dest} = $ip_dest;
 			$TCP{id}{$session_id}{src_port} = $tcp_src_port;
 			$TCP{id}{$session_id}{dest_port} = $tcp_dest_port;
-			&logger("\$TCP{id}{\$session_id}{src}: $TCP{id}{$session_id}{src}");
-			&logger("\$TCP{id}{$session_id}{src}: $TCP{id}{$session_id}{src}");
-			&logger("\$TCP{id}{\$session_id}{dest}: $TCP{id}{$session_id}{dest}");
-			&logger("\$TCP{id}{$session_id}{dest}: $TCP{id}{$session_id}{dest}");
-			&logger("\$TCP{id}{\$session_id}{src_port}: $TCP{id}{$session_id}{src_port}");
-			&logger("\$TCP{id}{$session_id}{src_port}: $TCP{id}{$session_id}{src_port}");
-			&logger("\$TCP{id}{\$session_id}{dest_port}: $TCP{id}{$session_id}{dest_port}");
-			&logger("\$TCP{id}{$session_id}{dest_port}: $TCP{id}{$session_id}{dest_port}");
-			&logger("\$TCP{id}{\$session_id}{size}: $TCP{id}{$session_id}{size}");
-			&logger("\$TCP{id}{$session_id}{size}: $TCP{id}{$session_id}{size}");
+			#&logger(")\$TCP{id}{\$session_id}{src}: $TCP{id}{$session_id}{src}");
+			#&logger(")\$TCP{id}{$session_id}{src}: $TCP{id}{$session_id}{src}");
+			#&logger(")\$TCP{id}{\$session_id}{dest}: $TCP{id}{$session_id}{dest}");
+			#&logger(")\$TCP{id}{$session_id}{dest}: $TCP{id}{$session_id}{dest}");
+			#&logger(")\$TCP{id}{\$session_id}{src_port}: $TCP{id}{$session_id}{src_port}");
+			#&logger(")\$TCP{id}{$session_id}{src_port}: $TCP{id}{$session_id}{src_port}");
+			#&logger(")\$TCP{id}{\$session_id}{dest_port}: $TCP{id}{$session_id}{dest_port}");
+			#&logger(")\$TCP{id}{$session_id}{dest_port}: $TCP{id}{$session_id}{dest_port}");
+			#&logger(")\$TCP{id}{\$session_id}{size}: $TCP{id}{$session_id}{size}");
+			#&logger(")\$TCP{id}{$session_id}{size}: $TCP{id}{$session_id}{size}");
 		}
 	}
 	
@@ -931,8 +931,8 @@ sub Process_TCP_Packet {
 		#
 		$TCP{id}{$session_id}{time}{$time}{data} .= $tcp_data;
 		$TCP{id}{$session_id}{time}{$time}{dir} .= "B";
-		&logger("B dir Process_TCP_Packet \$tcp_data:");
-		&binner("$tcp_data");
+		#&logger(")B dir Process_TCP_Packet \$tcp_data:");
+		#&binner()"$tcp_data");
 		
 		#
 		#
@@ -1001,6 +1001,7 @@ sub Process_TCP_Sessions {
 		&logger("$tcp_dest_port = $TCP{id}{$session_id}{dest_port};");
 		($service,$client) = &Pick_Service_Port("TCP",$session_id,
 			$tcp_src_port,$tcp_dest_port);
+		&logger("\$service,\$client: $service,$client");
 		
 		### Fetch text name for this port
 		$service_name = $Services_TCP{$service} || $service || "0";
@@ -1037,7 +1038,7 @@ sub Process_TCP_Sessions {
 				# gets: 1501068174.74363 => 
 				#&binner("$time => $TCP{id}{$session_id}{$time}{data}");
 				# This does it:
-				&binner("$time => $TCP{id}{$session_id}{time}{$time}{data}");
+				#&binner()"$time => $TCP{id}{$session_id}{time}{$time}{data}");
 				# Well, it's what's in the orig code :( and it took me time.
 				# Problem is, I read (a lot) perldoc perlref. Still vague.
 		}
@@ -1133,14 +1134,20 @@ sub Process_TCP_Sessions {
 			#
 			#  Save ".raw" file, all raw 2-way data time-sorted.
 			#
+			&logger("\$numtext: $numtext, \${service_name}.raw: ${service_name}.raw");
+			&logger("\$service_name.raw: $service_name.raw");
 			$filename = "session_${numtext}.${service_name}.raw";
 			open (OUT,">$filename") ||
 			 die "ERROR12: creating $filename $!\n";
 			binmode(OUT);		# for backward OSs
 			print OUT $rawboth;
+	&logger("just executed: print OUT \$rawboth");
+	&binner("$rawboth");
+	print STDOUT "FAKE11";
+	$response = <STDIN> // next ;
 			close OUT;
 			
-		print STDOUT "FAKE03";	# by this point created: session_NNNN_PORT.raw
+		print STDOUT "FAKE12";	# by this point created: session_NNNN_PORT.raw
 		$response = <STDIN> // next ;
 		
 			#
@@ -1151,6 +1158,9 @@ sub Process_TCP_Sessions {
 			 die "ERROR13: creating $filename $!\n";
 			binmode(OUT);		# for backward OSs
 			print OUT &TCP_Follow_RawA($session_id);
+	&binner("$raw");
+	print STDOUT "FAKE13";
+	$response = <STDIN> // next ;
 			close OUT;
 			
 		}
@@ -1502,7 +1512,9 @@ sub Process_Hex {
 #
 sub Save_HTTP_Files {
 	my ($filename);
+	&logger("\$filename: $filename");
 	my $session_id = shift;
+	&logger("\$session_id: $session_id");
 	my $number = shift;
 	my $service_name = shift;
 	my $numtext = sprintf("%04d",$number);
@@ -1510,6 +1522,8 @@ sub Save_HTTP_Files {
 	
 	### Full - Input
 	$http_session = &TCP_Follow_RawA($session_id);
+	&logger("just executed: TCP_Follow_RawA");
+	&binner("$http_session");
 	
 	### Full - Processing
 	@HttpParts = split(/HTTP\/[0-9.]* /,$http_session);
@@ -1807,14 +1821,14 @@ sub Read_Tcpdump_Record {
 	my $more;
 	
 	### Fetch record header
-	&logger("==================================================");
+	#&logger(")==================================================");
 	# The packet numbering does not correspond to the correct numbering, say,
 	# in Wireshark. It is so in original Chaosreader, where add this and see:
 	#print "### \$packet $packet ###\n";
-	&logger("### \$packet $packet ###");
+	#&logger(")### \$packet $packet ###");
 	$length = read(INFILE,$header_rec,($integerSize * 2 + 8));
-	&logger("\$header_rec:");
-	&binner("$header_rec");
+	#&logger(")\$header_rec:");
+	#&binner()"$header_rec");
 	
 	### Quit main loop if at end of file
 	last if $length < 16;
@@ -1835,18 +1849,18 @@ sub Read_Tcpdump_Record {
 		($tcpdump_seconds,$tcpdump_msecs,$tcpdump_length,
 		 $tcpdump_length_orig)
 		 = unpack('VVVV',$header_rec);
-		&logger("\$tcpdump_seconds,\$tcpdump_msecs,\$tcpdump_length,\$tcpdump_length_orig = unpack('VVVV',\$header_rec);");
-		&logger("$tcpdump_seconds,$tcpdump_msecs,$tcpdump_length,$tcpdump_length_orig,$my_header_rec;");
+		#&logger(")\$tcpdump_seconds,\$tcpdump_msecs,\$tcpdump_length,\$tcpdump_length_orig = unpack('VVVV',\$header_rec);");
+		#&logger(")$tcpdump_seconds,$tcpdump_msecs,$tcpdump_length,$tcpdump_length_orig,$my_header_rec;");
 		# The created bin snippet/data.
-		&binner("$header_rec");
+		#&binner()"$header_rec");
 		# Can be read too.
 		#open my $binfile, "<", "$my_bin_d" or die "Could not open $my_bin_d: $!";
 	}
 	$length = read(INFILE,$tcpdump_data,$tcpdump_length);
 	# See note above why this line.
-	&logger("\$tcpdump_data (later: \$packet_data, same as \$header_rec above, always?):");
-	&binner("$tcpdump_data");
-	&logger("--------------------------------------------------");
+	#&logger(")\$tcpdump_data (later: \$packet_data, same as \$header_rec above, always?):");
+	#&binner()"$tcpdump_data");
+	#&logger(")--------------------------------------------------");
 	$tcpdump_drops = $tcpdump_length_orig - $tcpdump_length;
 	# Uncomment to study just the initial loop:
 	#exit(0);
@@ -1864,366 +1878,6 @@ sub Set_Result_Names {
 			404 => "TCP_NEGATIVE_HIT"
 	);
 } 
-
-# JL: Set_MIME_Types - create hash of MIME types and file extensions.
-sub Set_MIME_Types {
-    # Initialize with types seen in the wild but not covered below.
-    %mime_types = (
-	"application/binary" => "binary",
-	"application/ocsp-response" => "ocsp",
-	"application/pln" => "pln", # bahn.de schedule
-	"application/vnd.google.safebrowsing-update" => "safebrowsing-update",
-	"application/vnd.google.safebrowsing-chunk" => "safebrowsing-chunk",
-	"application/vnd.ms-sync.wbxml" => "mssync", # MS ActiveSync
-	"application/x-protobuffer" => "protobuffer", # google
-	"application/x-smd" => "smd", # MapDroyd boundary
-	"(application|text)/((x-)?javascript|(x-)?js)" => "js",
-	"(application|text)/json" => "json",
-	"application/x-amf" => ".amf",
-	"application/x-zip-compressed" => ".zip",
-	"image/bmp" => "bmp",
-	"image/vnd.microsoft.icon" => "ico",
-	"image/x-gif" => "gif",
-	"(image/x-)?jp(e)?g" => "jpeg",
-	"image/x-png" => "png",
-	"text/xml" => "xml",
-	"application/x-bzip2" => "bz2",
-	"application/x-css" => "css",
-	"font/woff" => "woff",
-	"application/font-woff" => "woff");
-    # Following created with:
-    # grep -o -P "^(text|application|audio|image|video).*\t+([a-z0-9]+)" /etc/mime.types > mime.types
-    $raw_mime_types = <<END;
-application/andrew-inset			ez
-application/annodex				anx
-application/atom+xml				atom
-application/atomcat+xml				atomcat
-application/atomserv+xml			atomsrv
-application/bbolin				lin
-application/cap					cap
-application/cu-seeme				cu
-application/davmount+xml			davmount
-application/dsptype				tsp
-application/ecmascript				es
-application/futuresplash			spl
-application/hta					hta
-application/java-archive			jar
-application/java-serialized-object		ser
-application/java-vm				class
-application/javascript				js
-application/m3g					m3g
-application/mac-binhex40			hqx
-application/mac-compactpro			cpt
-application/mathematica				nb
-application/msaccess				mdb
-application/msword				doc
-application/mxf					mxf
-application/octet-stream			bin
-application/oda					oda
-application/ogg					ogx
-application/pdf					pdf
-application/pgp-keys				key
-application/pgp-signature			pgp
-application/pics-rules				prf
-application/postscript				ps
-application/rar					rar
-application/rdf+xml				rdf
-application/rss+xml				rss
-application/rtf					rtf
-application/smil				smi
-application/xhtml+xml				xhtml
-application/xml					xml
-application/xspf+xml				xspf
-application/zip					zip
-application/vnd.android.package-archive		apk
-application/vnd.cinderella			cdy
-application/vnd.google-earth.kml+xml		kml
-application/vnd.google-earth.kmz		kmz
-application/vnd.mozilla.xul+xml			xul
-application/vnd.ms-excel			xls
-application/vnd.ms-pki.seccat			cat
-application/vnd.ms-pki.stl			stl
-application/vnd.ms-powerpoint			ppt
-application/vnd.oasis.opendocument.chart			odc
-application/vnd.oasis.opendocument.database			odb
-application/vnd.oasis.opendocument.formula			odf
-application/vnd.oasis.opendocument.graphics			odg
-application/vnd.oasis.opendocument.graphics-template		otg
-application/vnd.oasis.opendocument.image			odi
-application/vnd.oasis.opendocument.presentation			odp
-application/vnd.oasis.opendocument.presentation-template	otp
-application/vnd.oasis.opendocument.spreadsheet			ods
-application/vnd.oasis.opendocument.spreadsheet-template		ots
-application/vnd.oasis.opendocument.text				odt
-application/vnd.oasis.opendocument.text-master			odm
-application/vnd.oasis.opendocument.text-template		ott
-application/vnd.oasis.opendocument.text-web			oth
-application/vnd.openxmlformats-officedocument.spreadsheetml.sheet		xlsx
-application/vnd.openxmlformats-officedocument.spreadsheetml.template		xltx
-application/vnd.openxmlformats-officedocument.presentationml.presentation	pptx
-application/vnd.openxmlformats-officedocument.presentationml.slideshow		ppsx
-application/vnd.openxmlformats-officedocument.presentationml.template		potx
-application/vnd.openxmlformats-officedocument.wordprocessingml.document		docx
-application/vnd.openxmlformats-officedocument.wordprocessingml.template		dotx
-application/vnd.rim.cod				cod
-application/vnd.smaf				mmf
-application/vnd.stardivision.calc		sdc
-application/vnd.stardivision.chart		sds
-application/vnd.stardivision.draw		sda
-application/vnd.stardivision.impress		sdd
-application/vnd.stardivision.math		sdf
-application/vnd.stardivision.writer		sdw
-application/vnd.stardivision.writer-global	sgl
-application/vnd.sun.xml.calc			sxc
-application/vnd.sun.xml.calc.template		stc
-application/vnd.sun.xml.draw			sxd
-application/vnd.sun.xml.draw.template		std
-application/vnd.sun.xml.impress			sxi
-application/vnd.sun.xml.impress.template	sti
-application/vnd.sun.xml.math			sxm
-application/vnd.sun.xml.writer			sxw
-application/vnd.sun.xml.writer.global		sxg
-application/vnd.sun.xml.writer.template		stw
-application/vnd.symbian.install			sis
-application/vnd.visio				vsd
-application/vnd.wap.wbxml			wbxml
-application/vnd.wap.wmlc			wmlc
-application/vnd.wap.wmlscriptc			wmlsc
-application/vnd.wordperfect			wpd
-application/vnd.wordperfect5.1			wp5
-application/x-123				wk
-application/x-7z-compressed			7z
-application/x-abiword				abw
-application/x-apple-diskimage			dmg
-application/x-bcpio				bcpio
-application/x-bittorrent			torrent
-application/x-cab				cab
-application/x-cbr				cbr
-application/x-cbz				cbz
-application/x-cdf				cdf
-application/x-cdlink				vcd
-application/x-chess-pgn				pgn
-application/x-cpio				cpio
-application/x-csh				csh
-application/x-debian-package			deb
-application/x-director				dcr
-application/x-dms				dms
-application/x-doom				wad
-application/x-dvi				dvi
-application/x-httpd-eruby			rhtml
-application/x-font				pfa
-application/x-freemind				mm
-application/x-futuresplash			spl
-application/x-gnumeric				gnumeric
-application/x-go-sgf				sgf
-application/x-graphing-calculator		gcf
-application/x-gtar				gtar
-application/x-hdf				hdf
-application/x-httpd-php				phtml
-application/x-httpd-php-source			phps
-application/x-httpd-php3			php3
-application/x-httpd-php3-preprocessed		php3p
-application/x-httpd-php4			php4
-application/x-httpd-php5			php5
-application/x-ica				ica
-application/x-info				info
-application/x-internet-signup			ins
-application/x-iphone				iii
-application/x-iso9660-image			iso
-application/x-jam				jam
-application/x-java-jnlp-file			jnlp
-application/x-jmol				jmz
-application/x-kchart				chrt
-application/x-killustrator			kil
-application/x-koan				skp
-application/x-kpresenter			kpr
-application/x-kspread				ksp
-application/x-kword				kwd
-application/x-latex				latex
-application/x-lha				lha
-application/x-lyx				lyx
-application/x-lzh				lzh
-application/x-lzx				lzx
-application/x-maker				frm
-application/x-mif				mif
-application/x-ms-wmd				wmd
-application/x-ms-wmz				wmz
-application/x-msdos-program			com
-application/x-msi				msi
-application/x-netcdf				nc
-application/x-ns-proxy-autoconfig		pac
-application/x-nwc				nwc
-application/x-object				o
-application/x-oz-application			oza
-application/x-pkcs7-certreqresp			p7r
-application/x-pkcs7-crl				crl
-application/x-python-code			pyc
-application/x-qgis				qgs
-application/x-quicktimeplayer			qtl
-application/x-redhat-package-manager		rpm
-application/x-ruby				rb
-application/x-sh				sh
-application/x-shar				shar
-application/x-shockwave-flash			swf
-application/x-silverlight			scr
-application/x-stuffit				sit
-application/x-sv4cpio				sv4cpio
-application/x-sv4crc				sv4crc
-application/x-tar				tar
-application/x-tcl				tcl
-application/x-tex-gf				gf
-application/x-tex-pk				pk
-application/x-texinfo				texinfo
-application/x-troff				t
-application/x-troff-man				man
-application/x-troff-me				me
-application/x-troff-ms				ms
-application/x-ustar				ustar
-application/x-wais-source			src
-application/x-wingz				wz
-application/x-x509-ca-cert			crt
-application/x-xcf				xcf
-application/x-xfig				fig
-application/x-xpinstall				xpi
-audio/amr					amr
-audio/amr-wb					awb
-audio/amr					amr
-audio/amr-wb					awb
-audio/annodex					axa
-audio/basic					au
-audio/flac					flac
-audio/midi					mid
-audio/mpeg					mpga
-audio/mpegurl					m3u
-audio/ogg					oga
-audio/prs.sid					sid
-audio/x-aiff					aif
-audio/x-gsm					gsm
-audio/x-mpegurl					m3u
-audio/x-ms-wma					wma
-audio/x-ms-wax					wax
-audio/x-pn-realaudio				ra
-audio/x-realaudio				ra
-audio/x-scpls					pls
-audio/x-sd2					sd2
-audio/x-wav					wav
-image/gif					gif
-image/ief					ief
-image/jpeg					jpeg
-image/pcx					pcx
-image/png					png
-image/svg+xml					svg
-image/tiff					tiff
-image/vnd.djvu					djvu
-image/vnd.wap.wbmp				wbmp
-image/x-canon-cr2				cr2
-image/x-canon-crw				crw
-image/x-cmu-raster				ras
-image/x-coreldraw				cdr
-image/x-coreldrawpattern			pat
-image/x-coreldrawtemplate			cdt
-image/x-corelphotopaint				cpt
-image/x-epson-erf				erf
-image/x-icon					ico
-image/x-jg					art
-image/x-jng					jng
-image/x-ms-bmp					bmp
-image/x-nikon-nef				nef
-image/x-olympus-orf				orf
-image/x-photoshop				psd
-image/x-portable-anymap				pnm
-image/x-portable-bitmap				pbm
-image/x-portable-graymap			pgm
-image/x-portable-pixmap				ppm
-image/x-rgb					rgb
-image/x-xbitmap					xbm
-image/x-xpixmap					xpm
-image/x-xwindowdump				xwd
-text/cache-manifest				manifest
-text/calendar					ics
-text/css					css
-text/csv					csv
-text/h323					323
-text/html					html
-text/iuls					uls
-text/mathml					mml
-text/plain					asc
-text/richtext					rtx
-text/scriptlet					sct
-text/texmacs					tm
-text/tab-separated-values			tsv
-text/vnd.sun.j2me.app-descriptor		jad
-text/vnd.wap.wml				wml
-text/vnd.wap.wmlscript				wmls
-text/x-bibtex					bib
-text/x-boo					boo
-text/x-c++hdr					h
-text/x-c++src					c
-text/x-chdr					h
-text/x-component				htc
-text/x-csh					csh
-text/x-csrc					c
-text/x-dsrc					d
-text/x-diff					diff
-text/x-haskell					hs
-text/x-java					java
-text/x-literate-haskell				lhs
-text/x-moc					moc
-text/x-pascal					p
-text/x-pcs-gcd					gcd
-text/x-perl					pl
-text/x-python					py
-text/x-scala					scala
-text/x-setext					etx
-text/x-sh					sh
-text/x-tcl					tcl
-text/x-tex					tex
-text/x-vcalendar				vcs
-text/x-vcard					vcf
-video/3gpp					3gp
-video/annodex					axv
-video/dl					dl
-video/dv					dif
-video/fli					fli
-video/gl					gl
-video/mpeg					mpeg
-video/mp4					mp4
-video/quicktime					qt
-video/ogg					ogv
-video/vnd.mpegurl				mxu
-video/x-flv					flv
-video/x-la-asf					lsf
-video/x-mng					mng
-video/x-ms-asf					asf
-video/x-ms-wm					wm
-video/x-ms-wmv					wmv
-video/x-ms-wmx					wmx
-video/x-ms-wvx					wvx
-video/x-msvideo					avi
-video/x-sgi-movie				movie
-video/x-matroska				mpv
-END
-    %ext_types = ();
-    foreach $line (split(/\n/, $raw_mime_types)) {
-	my ($mime_type, $extension) = split(/\t+/, $line);
-	# Beware.  "+" needs to be escaped in patterns.
-	$mime_type =~ s/\+/\\\+/g;
-	$mime_types{$mime_type} = $extension;
-	my ($type, $sub_type) = split(/\//, $mime_type);
-	# We check whether we already have a value for this extension.
-	# We don't care if application is overwritten.
-	if ((defined $ext_types{$extension}) &&
-	    ($ext_types{$extension} ne $type) &&
-	    ($ext_types{$extension} ne "application")) {
-	    print "$extension already has $ext_types{$extension}.";
-	    print "Should now become $type.  Fix mime.types?\n"
-	}
-	else {
-	    $ext_types{$extension} = $type;
-	}
-    }
-}
-
 
 # Touch_Vars - This is stops perl -w warnings about vars used only once.
 #		Part of my todo list is to cull this list.
