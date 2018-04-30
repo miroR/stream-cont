@@ -4,8 +4,8 @@
 #
 #				Copyright (c) 2018 Miroslav Rovis
 #
-#	Derived from small part of Chaosreader code. How exactly, see
-#	chread_tcp.pl, all the details/reasons.
+#	Derived from a fraction of Chaosreader code. How exactly, see
+#	chread_tcp.pl, all the details/reasons (main reason pasted over below).
 
 #
 #	released under BSD license, see LICENSE, or assume general BSD license,
@@ -13,8 +13,6 @@
 #   ( except for the script chread_tcp.pl which is Chaosreader's own code, plus
 #   two primitive subroutines, and which is, as Chaosreader itself, under GNU
 #   GPLv3 or later )
-#
-
 #
 #	Excerpt from chread_tcp.pl:
 #
@@ -26,8 +24,9 @@
 #	script (based on Chaosreader code) which would then extract data, i.e.
 #	mainly files of all kinds, from SSL streams [...]
 #
-#	And to be able to understand the needed Chaosreader code, I've removed a
-#	lot of code that wouldn't serve my future script.
+#	And (note: in chread_tcp.pl) to be able to understand the needed
+#	Chaosreader code, I've removed a lot of code that wouldn't serve my future
+#	script.
 #
 #	This is (hopefully) that future script (to become).
 
@@ -36,7 +35,93 @@
 use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
 use IO::Uncompress::Inflate qw(inflate $InflateError) ;
 use IO::Uncompress::RawInflate qw(rawinflate $RawInflateError) ;
+use Time::HiRes qw( clock_gettime usleep TIMER_ABSTIME );
 
+
+if (! defined $ARGV[0]) {
+	print "Give tshark-streams.sh produced ssl.bin streams as arguments.\n";
+	exit 1;
+}
+
+my @Tstreams = @ARGV;
+
+#foreach my $my_stream (@Tstreams) {
+#	print $my_stream;
+#}
+
+my ($my_stream,$s_0,$sec_0,$s,$sec,$usec,$filename_base,$my_log_dir,$my_log,$my_bin,$binfile,$binsize);
+	
+$s_0 = clock_gettime();
+$s_0 =~ s/(\d*)\.\d*/$1/ ;
+$sec_0 = $1;
+
+foreach $my_stream (@Tstreams) {
+	$filename_base = "";
+	$my_stream =~ /(\S*_s\d{3,4})-ssl\.bin/ ;
+	print "\$my_stream: $my_stream\n";
+	$filename_base = $1;
+	
+	sub logger {	# my debugging subroutine, for text (beginner, learning)
+	
+		$s = clock_gettime();
+		$s =~ s/(\d*)\.\d*/$1/ ;
+		$sec = $1;
+		$my_log_dir = "" ;
+		$my_bin = "" ;
+		$my_log = $filename_base ;
+		$my_log =~ s/(\S*)_s\d{3,4}/$1/ ;
+		$my_log = $1;
+		$my_log .= "-" ;
+		$my_log .= $sec_0 ;
+		$my_log .= ".log" ;
+		$my_log_dir = $filename_base ;
+		$my_log_dir .= ".d" ;
+		mkdir $my_log_dir ;
+		$my_log_dir .= "/" ;
+		
+		my $logmessage = shift;
+		open my $logfile, ">>", "$my_log" or
+			die "Could not open $my_log: $!";
+		say $logfile $logmessage;
+	}
+	
+	sub binner {	# my debugging subroutine, for binary strings
+		$s = clock_gettime();
+		$s =~ /(\d*)\.(\d*)/ ;
+		$sec = $1;
+		$usec = $2;
+		$my_bin = $my_log_dir;
+		$my_bin .= $sec;
+		$my_bin .= ".";
+		$my_bin .= $usec;
+		$my_bin .= ".bin";
+		my $binmessage = shift;
+		open $binfile, ">>", "$my_bin" or
+			die "Could not open $my_bin: $!";
+		print $binfile $binmessage;
+		&logger("created $my_bin");
+	}
+	
+	&logger("\$my_stream: $my_stream");
+	
+	my ($length,$number,$service_name,$http_session,$http_part,$http_header,$http_data,$ext,$partnum,$parttext,$response,$filename);
+	my @HttpParts;
+	my %mime_types;
+	$service_name = "";
+	
+print STDOUT "FAKE000";	#
+$response = <STDIN> // next ;
+
+my $content_type = "";
+
+open my $stream, "<", "$my_stream" or die "Could not open $my_stream: $!";
+binmode($stream);
+my $stream_var = do { local $/; <$stream> };	# from perlfaq5
+&binner("$stream_var");
+
+&Save_HTTP_Files($service_name);
+
+}
 
 # File_Type - return file extension for given data, else "data".
 #
@@ -70,31 +155,42 @@ sub File_Type {
 	return $type;
 }
 
-
-# Is_Image - returns true if extension is for an image.
-#
-sub Is_Image {
-	my $ext = shift;
-	
-	# JL: Use MIME types.
-	return ($ext_types{$ext} eq "image");
-}
-
-
 # Save_HTTP_Files - Save HTTP components.
 #
 sub Save_HTTP_Files {
-	my ($filename);
-	my $session_id = shift;
-	my $number = shift;
-	my $service_name = shift;
-	my $numtext = sprintf("%04d",$number);
+	&logger("at start of sub Save_HTTP_Files");
+	#my $session_id = shift;
+	#&logger("\$session_id: $session_id");
+	# The $number will be in the stream's filename, see my program
+	# tshark-streams
+	#my $number = shift;
+	# We'll assume the $service_name in the stream's name being "80",
+	# practicing on such raw1 files saved by sub TCP_Follow_RawA (see
+	# chread_tcp.pl).
+	my $service_name = 80;
+	#my $numtext = sprintf("%04d",$number);
 	
 	### Full - Input
-	$http_session = &TCP_Follow_RawA($session_id);
+	# If one line commented and replaced with
+	#$http_session = &TCP_Follow_RawA($session_id);
+	# this one uncommented line, no work done by Save_HTTP_Files
+	#$http_session = $raw;
+	#&logger("just executed: and TCP_Follow_RawA($session_id) (to get \$http_session)");
+	#&binner("$http_session");
+	#open $binfile, "<", "$my_bin" or die "Could not open $my_bin: $!";
+	#$length = read($binfile,$length,100);
+	#$binsize = -s $binfile;
+	#&logger("\$raw is of size $binsize");
+	#close($binfile) || die "couldn't close $binfile: $!";
 	
 	### Full - Processing
-	@HttpParts = split(/HTTP\/[0-9.]* /,$http_session);
+	#&logger("\$stream_var:");
+	#	&binnerbinner("$stream_var");
+	#open $binfile, "<", "$my_bin" or die "Could not open $my_bin: $!";
+	#$length = read($binfile,$length,1000);
+	#$binsize = -s $binfile;
+	#	&loggerlogger("\$stream_var is of size $binsize");
+	@HttpParts = split(/HTTP\/[0-9.]* /,$stream_var);
 	
 	### LOOP
 	$partnum = 0;
@@ -111,7 +207,23 @@ sub Save_HTTP_Files {
 		# next if length($http_data) < 8;
 		$partnum++;
 		$parttext = sprintf("%02d",$partnum);
-		
+		#	&loggerlogger("\$parttext: $parttext");
+
+		#	&loggerlogger("\$http_header:");
+		#	&binnerbinner("$http_header");
+		open $binfile, "<", "$my_bin" or die "Could not open $my_bin: $!";
+		$length = read($binfile,$length,1000);
+		$binsize = -s $binfile;
+		#	&loggerlogger("\$http_header is of size $binsize");
+		close($binfile) || die "couldn't close $binfile: $!";
+
+		#	&loggerlogger("\$http_data:");
+		#	&binnerbinner("$http_data");
+		open $binfile, "<", "$my_bin" or die "Could not open $my_bin: $!";
+		$length = read($binfile,$length,1000);
+		$binsize = -s $binfile;
+		#	&loggerlogger("\$http_data is of size $binsize");
+
 		### JL: Chunk Check, patch from http://refrequelate.blogspot.com/2008/07/more-de-chunking-chaosreader-patch.html
 		if ( $http_header =~ /Transfer-Encoding: chunked/ ) {
 			my $new_http_data="";
@@ -131,8 +243,9 @@ sub Save_HTTP_Files {
 		
 		### Part - Checks
 		my $http_type = &File_Type($http_data);
-		if ($TCP{id}{$session_id}{Partial}) { $ext = ".partial"; }
-		else { $ext = ""; }
+		# We do not work nor expect partial results for now.
+		#if ($TCP{id}{$session_id}{Partial}) { $ext = ".partial"; }
+		#else { $ext = ""; }
 		
 		### JL: Check for known MIME type in Content-Type
 		my ($content_type) = $http_header =~ /Content-Type:\s+(\S*)/is;
@@ -163,10 +276,12 @@ sub Save_HTTP_Files {
 		
 		### Part - Output
 		# JL: Create filename based on Content-Type
-		my $filename = "session_${numtext}.part_$parttext${ext}";
+		$filename = $filename_base;
+		$filename .= ".part_$parttext${ext}";
 		if ($file_extension ne "") {
 		    $filename .= ".$file_extension";
 		}
+		#	&loggerlogger("\$filename: $filename");
 		if ( ($file_extension eq "") or ($http_type eq "gz") ) {
 		    $filename .= ".$http_type";
 		}

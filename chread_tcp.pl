@@ -201,11 +201,9 @@ sub Open_Input_File {
 	$my_log_dir .= "/" ;
 	$my_log .= ".log" ;
 
-	&logger("This log ($my_log) created for printing %IP and %TCP");
-	&logger("\tfor own understanding of the core functionality of this script,");
-	&logger("\tfor text, with sub logger.");
-	&logger("There can also be dir $my_log_dir");
-	&logger("\tfor binary snippets/data, with sub binner");
+	&logger("In this \"coresubs\" branch it's my final effort to understand");
+	&logger("\tthe code I need from Chaosreader,");
+	&logger("\tbefore attempting to use it for my stream-cont.pl.");
 	&logger("==================================================");
 
 	
@@ -772,28 +770,12 @@ sub Process_TCP_Packet {
 	### Unpack TCP data
 	($tcp_src_port,$tcp_dest_port,$tcp_seq,$tcp_ack,$tcp_offset,$tcp_flags,
 		$tcp_header_rest,$tcp_data) = unpack('nnNNCCa6a*',$ip_data);
-	#&logger(")\$tcp_src_port,\$tcp_dest_port");
-	#&logger(")\$tcp_seq,\$tcp_ack,\$tcp_offset,\$tcp_flags");
-	#&logger(")= the_unpack(nnNNCCa6a*,\$ip_data");
-	#&logger(")$tcp_src_port,$tcp_dest_port");
-	#&logger(")$tcp_seq,$tcp_ack,$tcp_offset,$tcp_flags");
-	#&logger(")\$tcp_header_rest:");
-	#&binner()"$tcp_header_rest");
-	#&logger(")\$tcp_data:");
-	#&binner()"$tcp_data");
-	#&logger(")--------------------------------------------------");
 	
 	
 	### Strip off TCP options, if present
 	$tcp_offset = $tcp_offset >> 4;		# chuck out reserved bits
-	#&logger(")\$tcp_offset = \$tcp_offset shift 4");
-	#&logger(")\$tcp_offset: $tcp_offset");
 	$tcp_offset = $tcp_offset << 2;		# now times by 4
-	#&logger(")\$tcp_offset = \$tcp_offset shift left 2");
-	#&logger(")\$tcp_offset: $tcp_offset");
 	$tcp_options_num = $tcp_offset - 20;
-	#&logger(")\$tcp_options_num = \$tcp_offset - 20");
-	#&logger(")\$tcp_options_num = $tcp_options_num");
 	if ($tcp_options_num > 0) {
 		($tcp_options,$tcp_data) =
 		 unpack("a${tcp_options_num}a*",$tcp_data);
@@ -804,23 +786,15 @@ sub Process_TCP_Packet {
 	#$tcp_length_data = length($tcp_data);
 	$tcp_fin = $tcp_flags & 1;
 	if ($tcp_fin != 0 ) {
-		#&logger(")\$tcp_fin = $tcp_flags & 1");
-		#&logger(")\$tcp_fin = $tcp_fin");
 		}
 	$tcp_syn = $tcp_flags & 2;
 	if ($tcp_syn != 0 ) {
-		#&logger(")\$tcp_syn = $tcp_flags & 2");
-		#&logger(")\$tcp_syn = $tcp_syn");
 	}
 	$tcp_rst = $tcp_flags & 4;
 	if ($tcp_rst != 0 ) {
-		#&logger(")\$tcp_rst = $tcp_flags & 4");
-		#&logger(")\$tcp_rst = $tcp_rst");
 	}
 	$tcp_ack = $tcp_flags & 16;
 	if ($tcp_ack != 0 ) {
-		#&logger(")\$tcp_ack = $tcp_flags & 16");
-		#&logger(")\$tcp_ack = $tcp_ack");
 	}
 	
 	#
@@ -849,13 +823,10 @@ sub Process_TCP_Packet {
 	
 	### Store size
 	$TCP{id}{$session_id}{size} += length($tcp_data);
-	#&logger(")\$TCP{id}{$session_id}{size}: $TCP{id}{$session_id}{size}");
-	#&logger(")--------------------------------------------------");
 	
 	### Store the packet timestamp for the first seen packet
 	if (! defined $TCP{id}{$session_id}{StartTime}) {
 		$TCP{id}{$session_id}{StartTime} = $time;
-		#&logger(")\$TCP{id}{\$session_id}{StartTime}: $TCP{id}{$session_id}{StartTime}");
 		
 		### Store other info once
 		if ($from_server) {
@@ -868,23 +839,11 @@ sub Process_TCP_Packet {
 			$TCP{id}{$session_id}{dest} = $ip_dest;
 			$TCP{id}{$session_id}{src_port} = $tcp_src_port;
 			$TCP{id}{$session_id}{dest_port} = $tcp_dest_port;
-			#&logger(")\$TCP{id}{\$session_id}{src}: $TCP{id}{$session_id}{src}");
-			#&logger(")\$TCP{id}{$session_id}{src}: $TCP{id}{$session_id}{src}");
-			#&logger(")\$TCP{id}{\$session_id}{dest}: $TCP{id}{$session_id}{dest}");
-			#&logger(")\$TCP{id}{$session_id}{dest}: $TCP{id}{$session_id}{dest}");
-			#&logger(")\$TCP{id}{\$session_id}{src_port}: $TCP{id}{$session_id}{src_port}");
-			#&logger(")\$TCP{id}{$session_id}{src_port}: $TCP{id}{$session_id}{src_port}");
-			#&logger(")\$TCP{id}{\$session_id}{dest_port}: $TCP{id}{$session_id}{dest_port}");
-			#&logger(")\$TCP{id}{$session_id}{dest_port}: $TCP{id}{$session_id}{dest_port}");
-			#&logger(")\$TCP{id}{\$session_id}{size}: $TCP{id}{$session_id}{size}");
-			#&logger(")\$TCP{id}{$session_id}{size}: $TCP{id}{$session_id}{size}");
 		}
 	}
 	
 	### Store the packet timestamp in case this is the last packet
 	$TCP{id}{$session_id}{EndTime} = $time;
-	#&logger("\$TCP{id}{\$session_id}{EndTime} = \$time: \
-	#	$TCP{id}{$session_id}{EndTime} = $time");
 	
 	### Print status line
 	printf "%6s  %-45s  %s\n",$packet,$session_id,$length
@@ -904,8 +863,6 @@ sub Process_TCP_Packet {
 		#
 		$TCP{id}{$session_id}{time}{$time}{data} .= $tcp_data;
 		$TCP{id}{$session_id}{time}{$time}{dir} .= "A";
-		&logger("A dir Process_TCP_Packet \$tcp_data:");
-		&binner("$tcp_data");
 		
 		#
 		#
@@ -931,8 +888,6 @@ sub Process_TCP_Packet {
 		#
 		$TCP{id}{$session_id}{time}{$time}{data} .= $tcp_data;
 		$TCP{id}{$session_id}{time}{$time}{dir} .= "B";
-		#&logger(")B dir Process_TCP_Packet \$tcp_data:");
-		#&binner()"$tcp_data");
 		
 		#
 		#
@@ -980,6 +935,7 @@ sub Process_TCP_Sessions {
 		$number = $Index{Sort_Lookup}{"TCP:$session_id"};
 		# Would print in Arg{the_dir}, so $my_log adapted.
 		#&logger("\$my_log: $my_log");
+		&logger("at start of foreach \$session_id (keys hash {\$TCP{id}})");
 		&logger("\$session_id: $session_id");
 		&logger("\$number: $number");
 		
@@ -1031,29 +987,17 @@ sub Process_TCP_Sessions {
 		$rawboth = "";
 		foreach $time (sort {$a <=> $b}
 			(keys (%{$TCP{id}{$session_id}{time}}))) {
-				# gets: 1501068174.74363 => HASH(0x5c5d9ba8b8
-				#&binner("$time => $TCP{id}{$session_id}{time}");
-				# gets: 1501068174.74363 => 
-				#&binner("$time => $TCP{id}{$session_id}{$time}");
-				# gets: 1501068174.74363 => 
-				#&binner("$time => $TCP{id}{$session_id}{$time}{data}");
-				# This does it:
-				#&binner()"$time => $TCP{id}{$session_id}{time}{$time}{data}");
-				# Well, it's what's in the orig code :( and it took me time.
-				# Problem is, I read (a lot) perldoc perlref. Still vague.
-		}
-		
-		print STDOUT "FAKE-1";
-		$response = <STDIN> // next ;
-
-		foreach $time (sort {$a <=> $b}
-			(keys (%{$TCP{id}{$session_id}{time}}))) {
 			$rawboth .= $TCP{id}{$session_id}{time}{$time}{data};
 		}
 		$length = length($rawboth);
-		&logger("\$length(\$rawboth)");
+		&logger("\$length(\$rawboth): $length");
 		&logger("\$rawboth:");
 		&binner("$rawboth");
+		open my $binfile, "<", "$my_bin" or die "Could not open $my_bin: $!";
+		$length = read($binfile,$length,100);
+		my $binsize = -s $binfile;
+		&logger("\$rawboth is of size $binsize");
+		close($binfile) || die "couldn't close $binfile: $!";
 		
 		#
 		# --- Check for Min and Max size ---
@@ -1065,9 +1009,6 @@ sub Process_TCP_Sessions {
 		$numtext = sprintf("%04d",$number);
 		printf "%6s  %-45s  %s\n",$numtext,$session_id,$service_name
 			unless $Arg{quiet};
-		
-		print STDOUT "FAKE00";
-		$response = <STDIN> // next ;
 		
 		#
 		# --- Save Info File to Disk ---
@@ -1104,7 +1045,7 @@ sub Process_TCP_Sessions {
 			close OUT;
 		}
 		
-		print STDOUT "FAKE01";	# by this point created: session_NNNN.info
+		print STDOUT "FAKE001";	# by this point created: session_NNNN.info
 		$response = <STDIN> // next ;
 		
 		#
@@ -1122,9 +1063,6 @@ sub Process_TCP_Sessions {
 		### Generate session strings
 		($id_text,$id_html) = &Generate_TCP_IDs($session_id);
 		
-		print STDOUT "FAKE02";
-		$response = <STDIN> // next ;
-		
 		#
 		# --- Save Raw Sessions to Disk ---
 		#
@@ -1141,34 +1079,52 @@ sub Process_TCP_Sessions {
 			 die "ERROR12: creating $filename $!\n";
 			binmode(OUT);		# for backward OSs
 			print OUT $rawboth;
-	&logger("just executed: print OUT \$rawboth");
-	&binner("$rawboth");
-	print STDOUT "FAKE11";
-	$response = <STDIN> // next ;
-			close OUT;
+
+			&logger("just executed: print OUT \$rawboth");
+			&binner("$rawboth");
+			open my $binfile, "<", "$my_bin" or die "Could not open $my_bin: $!";
+			$length = read($binfile,$length,100);
+			my $binsize = -s $binfile;
+			&logger("\$rawboth is of size $binsize");
+			close($binfile) || die "couldn't close $binfile: $!";
 			
-		print STDOUT "FAKE12";	# by this point created: session_NNNN_PORT.raw
-		$response = <STDIN> // next ;
+			print STDOUT "FAKE011";	# by this point created: session_NNNN_PORT.raw
+			$response = <STDIN> // next ;
+
+			close OUT;
 		
 			#
 			#  Save ".raw1" file, server->client 1-way data assembled.
 			#
 			$filename = "session_${numtext}.${service_name}.raw1";
+			&logger("\$filename: $filename");
 			open (OUT,">$filename") ||
 			 die "ERROR13: creating $filename $!\n";
 			binmode(OUT);		# for backward OSs
+			# I get same result whether the orig:
 			print OUT &TCP_Follow_RawA($session_id);
-	&binner("$raw");
-	print STDOUT "FAKE13";
-	$response = <STDIN> // next ;
+			# or (comment out the orig one line, uncomment one line below):
+			#print OUT $raw;
 			close OUT;
+
+			&logger("just executed: and TCP_Follow_RawA($session_id) (in print OUT)");
+			&binner("$raw");
+			open my $binfile, "<", "$my_bin" or die "Could not open $my_bin: $!";
+			$length = read($binfile,$length,100);
+			my $binsize = -s $binfile;
+			&logger("\$raw is of size $binsize");
+			close($binfile) || die "couldn't close $binfile: $!";
+			
+			print STDOUT "FAKE013";	# by this point created: session_NNNN_PORT.raw1
+			$response = <STDIN> // next ;
+
 			
 		}
-			
-		print STDOUT "FAKE04";	# by this point created: session_NNNN_PORT.raw1
-		$response = <STDIN> // next ;
 		
 		next unless $Arg{output_apps};
+			
+		print STDOUT "FAKE100";
+		$response = <STDIN> // next ;
 		
 		#
 		# --- Process Application Data ---
@@ -1178,16 +1134,24 @@ sub Process_TCP_Sessions {
 			# JL: 8118 is HTTP(S) via polipo.
 			#     9050 is Tor (socks4a, but works good enough for me).
 			$service == 8118 or $service == 9050)  {
+				&logger("\$session_id: $session_id");
+				&logger("\$number: $number");
+				&logger("\$service_name: $service_name");
+				&logger("about to execute: and Save_HTTP_Files");
 				&Save_HTTP_Files($session_id,$number,$service_name);
 			
-		print STDOUT "FAKE05";	# by this point created: session_NNNN_part_NN.data
-								# by this point created: session_NNNN_part_NN.html
-		$response = <STDIN> // next ;
+				print STDOUT "FAKE105";	# by this point created: session_NNNN_part_NN.data
+										# by this point created: session_NNNN_part_NN.html
+										# by this point created: session_NNNN_part_NN.png
+				$response = <STDIN> // next ;
 
+				&logger("\$session_id: $session_id");
+				&logger("\$number: $number");
+				&logger("about to execute: and Process_HTTP");
 				&Process_HTTP($session_id,$number);
 		}
 			
-		print STDOUT "FAKE06";
+		print STDOUT "FAKE110";
 		$response = <STDIN> // next ;
 	}
 }
@@ -1254,6 +1218,11 @@ sub Process_HTTP {
 				$request .= $next;
 			}
 			&binner("$request");
+			open my $binfile, "<", "$my_bin" or die "Could not open $my_bin: $!";
+			$length = read($binfile,$length,100);
+			my $binsize = -s $binfile;
+			&logger("\$request is of size $binsize");
+			close($binfile) || die "couldn't close $binfile: $!";
 		}
 		$i++; # speed
 		$partnum++;
@@ -1264,14 +1233,16 @@ sub Process_HTTP {
 			($referer) = $request =~ /\sReferer:\s(\S*)/is;
 			($cookie) = $request =~ /\sCookie:\s(\S*)/is;
 			($setcookie) = $reply =~ /\sSet-Cookie:\s(\S*)/is;
-			&logger("\$request: $request");
+			&logger("\$request:\n---");
+			&logger("$request");
+			&logger("---\n");
 			&logger("\$host: $host");
 			&logger("\$referer: $referer");
 			&logger("\$cookie: $cookie");
 			&logger("\$setcookie: $setcookie");
 			
-		print STDOUT "FAKE07";
-		$response = <STDIN> // next ;
+			print STDOUT "FAKE170";
+			$response = <STDIN> // next ;
 			
 			### Get the site string
 			($site) = $request =~ /^GET (\S*)\s/;
@@ -1287,11 +1258,16 @@ sub Process_HTTP {
 			
 			### Get the status and mime type from reply
 			($status)  = $reply =~ /HTTP\/\S*\s(\S*)/s;
+			&logger("\$status: $status");
 			# JL: Be careful to use case insensitive matching
 			($type) = $reply =~ /Content-Type:\s(\S*)/is;
+			&logger("\$type: $type");
 			($size) = $reply =~ /Content-Length:\s(\S*)/is;
+			&logger("\$size: $size");
 			$type = "-" if $type eq "";
+			&logger("\$type: $type");
 			$size = 0 if $size eq "";
+			&logger("\$size: $size");
 			
 			$result = $Result_Names{$status} || "TCP_HIT";
 			
@@ -1300,28 +1276,32 @@ sub Process_HTTP {
 				$ExtImage{HTML}[$number]{links} .= "<img src=\"$site\"> ";
 			}
 		} elsif ($request =~ /^POST .* HTTP/) {
-		### Get the site string
-		($site) = $request =~ /^POST (\S*)\s/;
-		if ($site =~ m:^/:) {
-			# assume this was a http, missing the "http://host"
-			$site = "http://${dest}$site";
-		}
-		### JL: Get the host string, referer, and cookies.
-		($host) = $request =~ /\sHost:\s(\S*)\s/is;
-		($referer) = $request =~ /\sReferer:\s(\S*)/is;
-		($cookie) = $request =~ /\sCookie:\s(\S*)/is;
-		($setcookie) = $reply =~ /\sSet-Cookie:\s(\S*)/is;
-		
-		### Get the status and mime type
-		($status)  = $reply =~ /HTTP\/\S*\s(\S*)/s;
-		($type) = $reply =~ /Content-Type:\s(\S*)/is;
-		($size) = $reply =~ /Content-Length:\s(\S*)/is;
-		$type = "-" if $type eq "";
-		$size = length($TCP{id}{$session_id}) if $size eq "";
-		$result = $Result_Names{$status} || "TCP_HIT";
-		}
+			### Get the site string
+			($site) = $request =~ /^POST (\S*)\s/;
+			if ($site =~ m:^/:) {
+				# assume this was a http, missing the "http://host"
+				$site = "http://${dest}$site";
+			}
+			### JL: Get the host string, referer, and cookies.
+			($host) = $request =~ /\sHost:\s(\S*)\s/is;
+			($referer) = $request =~ /\sReferer:\s(\S*)/is;
+			($cookie) = $request =~ /\sCookie:\s(\S*)/is;
+			($setcookie) = $reply =~ /\sSet-Cookie:\s(\S*)/is;
+			&logger("\$host: $host");
+			&logger("\$referer: $referer");
+			&logger("\$cookie: $cookie");
+			&logger("\$setcookie: $setcookie");
 			
-		print STDOUT "FAKE08";
+			### Get the status and mime type
+			($status)  = $reply =~ /HTTP\/\S*\s(\S*)/s;
+			($type) = $reply =~ /Content-Type:\s(\S*)/is;
+			($size) = $reply =~ /Content-Length:\s(\S*)/is;
+			$type = "-" if $type eq "";
+			$size = length($TCP{id}{$session_id}) if $size eq "";
+			$result = $Result_Names{$status} || "TCP_HIT";
+		}
+		
+		print STDOUT "FAKE180";
 		$response = <STDIN> // next ;
 		
 		#
@@ -1342,17 +1322,24 @@ sub Process_HTTP {
 				# JL: Why only those with parameters?
 			
 		} elsif ($request =~ /^POST .* HTTP/) {
-		
-		### Get the POST strings
-		($junk,$post,$junk1) = split(/\n\n|\r\n\r\n/,$request);
-		
+			
+			### Get the POST strings
+			($junk,$post,$junk1) = split(/\n\n|\r\n\r\n/,$request);
+			
+			&logger("\$post:");
+			&binner("$post");
+			open my $binfile, "<", "$my_bin" or die "Could not open $my_bin: $!";
+			$length = read($binfile,$length,100);
+			my $binsize = -s $binfile;
+			&logger("\$post is of size $binsize");
+			close($binfile) || die "couldn't close $binfile: $!";
 		}
 			
-		print STDOUT "FAKE09";
+		print STDOUT "FAKE190";
 		$response = <STDIN> // next ;
 	}
 			
-		print STDOUT "FAKE10";
+		print STDOUT "FAKE200";
 		$response = <STDIN> // next ;
 }
 
@@ -1511,6 +1498,7 @@ sub Process_Hex {
 # Save_HTTP_Files - Save HTTP components.
 #
 sub Save_HTTP_Files {
+	&logger("at start of sub Save_HTTP_Files");
 	my ($filename);
 	&logger("\$filename: $filename");
 	my $session_id = shift;
@@ -1521,9 +1509,17 @@ sub Save_HTTP_Files {
 	&logger("\$number: $number, \$numtext: $numtext");
 	
 	### Full - Input
+	# If one line commented and replaced with
 	$http_session = &TCP_Follow_RawA($session_id);
-	&logger("just executed: TCP_Follow_RawA");
+	# this one uncommented line, no work done by Save_HTTP_Files
+	#$http_session = $raw;
+	&logger("just executed: and TCP_Follow_RawA($session_id) (to get \$http_session)");
 	&binner("$http_session");
+	open my $binfile, "<", "$my_bin" or die "Could not open $my_bin: $!";
+	$length = read($binfile,$length,100);
+	my $binsize = -s $binfile;
+	&logger("\$raw is of size $binsize");
+	close($binfile) || die "couldn't close $binfile: $!";
 	
 	### Full - Processing
 	@HttpParts = split(/HTTP\/[0-9.]* /,$http_session);
@@ -1667,6 +1663,8 @@ sub TCP_Follow_RawA {
 	@Seqs = keys (%{$TCP{id}{$session_id}{Aseq}});
 	foreach $seq (sort { $a <=> $b } @Seqs) {
 		$raw .= ${$TCP{id}{$session_id}{Aseq}{$seq}};
+		#&logger("\${\$TCP{id}{$session_id}{Aseq}{$seq}}:");
+		#&binner("${$TCP{id}{$session_id}{Aseq}{$seq}}");
 	}
 
 	return $raw;
@@ -1720,10 +1718,6 @@ sub Generate_SessionID {
 	#  Generate session_id string using host:port,host:port sorted on
 	#  port (low port last).
 	#
-	&logger("\$ip_src: $ip_src");
-	&logger("\$tcp_src_port: $tcp_src_port");
-	&logger("\$ip_dest: $ip_dest");
-	&logger("\$tcp_dest_port: $tcp_dest_port");
 	if ($tcp_src_port < $tcp_dest_port) {
 		$session_id = "$ip_dest:$tcp_dest_port,$ip_src:$tcp_src_port";
 		$from_server = 1;
@@ -1737,9 +1731,6 @@ sub Generate_SessionID {
 	}
 	
 	if ($type eq "TCP") {
-		if ( $TCP{id}{$session_id}{source} ) {
-			&logger("\$TCP{id}{\$session_id}{source}: $TCP{id}{$session_id}{source}");
-		}
 		if (defined $TCP{id}{$session_id}{source}) {
 			if ($TCP{id}{$session_id}{source} eq $ip_dest
 			    # JL: Also look at the port as ip_src and ip_dest
