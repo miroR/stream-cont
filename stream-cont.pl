@@ -58,7 +58,7 @@ $sec_0 = $1;
 foreach $my_stream (@Tstreams) {
 	$filename_base = "";
 	$my_stream =~ /(\S*_s\d{3,4})-ssl\.bin/ ;
-	print "\$my_stream: $my_stream\n";
+	#print "\$my_stream: $my_stream\n";
 	$filename_base = $1;
 	
 	sub logger {	# my debugging subroutine, for text (beginner, learning)
@@ -104,22 +104,17 @@ foreach $my_stream (@Tstreams) {
 	
 	&logger("\$my_stream: $my_stream");
 	
-	my ($length,$number,$service_name,$http_session,$http_part,$http_header,$http_data,$ext,$partnum,$parttext,$response,$filename);
+	my ($length,$http_part,$http_header,$http_data,$ext,$partnum,$parttext,$response,$filename);
 	my @HttpParts;
 	my %mime_types;
-	$service_name = "";
+	#$service_name = "";
 	
-print STDOUT "FAKE000";	#
-$response = <STDIN> // next ;
+#print STDOUT "FAKE000";	#
+#$response = <STDIN> // next ;
 
 my $content_type = "";
 
-open my $stream, "<", "$my_stream" or die "Could not open $my_stream: $!";
-binmode($stream);
-my $stream_var = do { local $/; <$stream> };	# from perlfaq5
-&binner("$stream_var");
-
-&Save_HTTP_Files($service_name);
+&Save_HTTP_Files($my_stream);
 
 }
 
@@ -158,38 +153,19 @@ sub File_Type {
 # Save_HTTP_Files - Save HTTP components.
 #
 sub Save_HTTP_Files {
+	$my_stream = shift;
 	&logger("at start of sub Save_HTTP_Files");
-	#my $session_id = shift;
-	#&logger("\$session_id: $session_id");
-	# The $number will be in the stream's filename, see my program
-	# tshark-streams
-	#my $number = shift;
-	# We'll assume the $service_name in the stream's name being "80",
-	# practicing on such raw1 files saved by sub TCP_Follow_RawA (see
-	# chread_tcp.pl).
-	my $service_name = 80;
-	#my $numtext = sprintf("%04d",$number);
+	#print "\$my_stream: $my_stream";
+	&logger("\$my_stream: $my_stream");
+
+	open my $stream, "<", "$my_stream" or die "Could not open $my_stream: $!";
+	binmode($stream);
+	my $stream_var = do { local $/; <$stream> };	# from perlfaq5
+	&binner("$stream_var");
 	
-	### Full - Input
-	# If one line commented and replaced with
-	#$http_session = &TCP_Follow_RawA($session_id);
-	# this one uncommented line, no work done by Save_HTTP_Files
-	#$http_session = $raw;
-	#&logger("just executed: and TCP_Follow_RawA($session_id) (to get \$http_session)");
-	#&binner("$http_session");
-	#open $binfile, "<", "$my_bin" or die "Could not open $my_bin: $!";
-	#$length = read($binfile,$length,100);
-	#$binsize = -s $binfile;
-	#&logger("\$raw is of size $binsize");
-	#close($binfile) || die "couldn't close $binfile: $!";
-	
-	### Full - Processing
-	#&logger("\$stream_var:");
-	#	&binnerbinner("$stream_var");
-	#open $binfile, "<", "$my_bin" or die "Could not open $my_bin: $!";
-	#$length = read($binfile,$length,1000);
-	#$binsize = -s $binfile;
-	#	&loggerlogger("\$stream_var is of size $binsize");
+	#print STDOUT "FAKE010";	#
+	#$response = <STDIN> // next ;
+
 	@HttpParts = split(/HTTP\/[0-9.]* /,$stream_var);
 	
 	### LOOP
@@ -211,18 +187,9 @@ sub Save_HTTP_Files {
 
 		#	&loggerlogger("\$http_header:");
 		#	&binnerbinner("$http_header");
-		open $binfile, "<", "$my_bin" or die "Could not open $my_bin: $!";
-		$length = read($binfile,$length,1000);
-		$binsize = -s $binfile;
-		#	&loggerlogger("\$http_header is of size $binsize");
-		close($binfile) || die "couldn't close $binfile: $!";
 
 		#	&loggerlogger("\$http_data:");
 		#	&binnerbinner("$http_data");
-		open $binfile, "<", "$my_bin" or die "Could not open $my_bin: $!";
-		$length = read($binfile,$length,1000);
-		$binsize = -s $binfile;
-		#	&loggerlogger("\$http_data is of size $binsize");
 
 		### JL: Chunk Check, patch from http://refrequelate.blogspot.com/2008/07/more-de-chunking-chaosreader-patch.html
 		if ( $http_header =~ /Transfer-Encoding: chunked/ ) {
