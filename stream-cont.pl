@@ -39,7 +39,7 @@ use Time::HiRes qw( clock_gettime usleep TIMER_ABSTIME );
 
 
 if (! defined $ARGV[0]) {
-	print "Give tshark-streams.sh produced ssl.bin streams as arguments.\n";
+	print "Give tshark-streams.sh produced .bin (ssl and/or plain) streams as arguments.\n";
 	exit 1;
 }
 
@@ -57,9 +57,10 @@ $sec_0 = $1;
 
 foreach $my_stream (@Tstreams) {
 	$filename_base = "";
-	$my_stream =~ /(\S*_s\d{3,4})-ssl\.bin/ ;
+	$my_stream =~ /(.*)\.bin/ ;
 	#print "\$my_stream: $my_stream\n";
 	$filename_base = $1;
+	#print "\$filename_base: $filename_base\n";
 	
 	sub logger {	# my debugging subroutine, for text (beginner, learning)
 	
